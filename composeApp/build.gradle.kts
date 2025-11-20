@@ -43,6 +43,10 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation("org.jetbrains.compose.animation:animation")
+            // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-browser
+          //  implementation("androidx.navigation:navigation-compose:2.7.0")
+           // implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -50,6 +54,9 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+        }
+        wasmJsMain.dependencies{
+            implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
         }
     }
 }
