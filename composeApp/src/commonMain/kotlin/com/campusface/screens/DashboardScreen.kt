@@ -1,33 +1,35 @@
 // commonMain/kotlin/DashboardScreen.kt
 package com.campusface.screens
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
-// Importe sua classe de navegação
-import com.campusface.navigation.DashboardScreen // Ajuste o pacote conforme o seu projeto
-
-// Importe seus componentes
+import com.campusface.navigation.DashboardScreen
 import com.campusface.components.Sidebar
 import com.campusface.components.MainContent
 
-// =======================================================
-// 1. FUNÇÃO COMPOSABLE PRINCIPAL (Mantém o Estado)
-// =======================================================
-
 @Composable
 fun DashboardScreen() {
-    // Gerenciamento de Estado: Qual tela está selecionada
-    var currentScreen by remember { mutableStateOf<DashboardScreen>(DashboardScreen.Overview) }
-
-    // Efeito de Sincronização de URL (EXPECT/ACTUAL)
-    // Chama a função que será implementada especificamente para Web (com lógica de URL)
-    // e para Desktop/Mobile (como uma função vazia).
+    var currentScreen by remember { mutableStateOf<DashboardScreen>(DashboardScreen.Membro) }
+    val onNavigate: (DashboardScreen) -> Unit = { newScreen ->
+        currentScreen = newScreen
+    }
     UrlSyncEffect(
         currentScreen = currentScreen,
         onScreenChangedByUrl = { screen ->
@@ -41,23 +43,19 @@ fun DashboardScreen() {
         // Sidebar Fixo: Atualiza o estado ao clicar
         Sidebar(
             currentScreen = currentScreen,
-            onScreenSelected = { newScreen ->
-                currentScreen = newScreen
-            }
+            onScreenSelected = onNavigate
         )
 
-        // Main Content (Outlet): Renderiza a tela baseada no estado
+    // Main Content (Outlet): Renderiza a tela baseada no estado
+
         MainContent(
-            currentScreen = currentScreen
+            currentScreen = currentScreen,
+            onNavigate = onNavigate
         )
     }
+
+
 }
-
-// =======================================================
-// 2. DECLARAÇÃO EXPECT (Contrato Multiplatform)
-//    DEVE ESTAR NO NÍVEL SUPERIOR
-// =======================================================
-
 @Composable
 expect fun UrlSyncEffect(
     currentScreen: DashboardScreen,

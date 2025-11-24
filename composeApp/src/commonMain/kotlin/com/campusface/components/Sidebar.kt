@@ -27,27 +27,34 @@ fun Sidebar(
             .padding(16.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Text("Painel KMP", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text("Campus Face", fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Spacer(Modifier.height(32.dp))
 
         SidebarItem(
-            label = "Visão Geral",
-            isSelected = currentScreen is DashboardScreen.Overview,
-            onClick = { onScreenSelected(DashboardScreen.Overview) }
+            label = "Membro",
+            isSelected = currentScreen is DashboardScreen.Membro,
+            onClick = { onScreenSelected(DashboardScreen.Membro) }
         )
         Spacer(Modifier.height(8.dp))
 
         SidebarItem(
-            label = "Configurações",
-            isSelected = currentScreen is DashboardScreen.Settings,
-            onClick = { onScreenSelected(DashboardScreen.Settings) }
+            label = "Administrar",
+            isSelected = currentScreen is DashboardScreen.Administrar,
+            onClick = { onScreenSelected(DashboardScreen.Administrar) }
         )
         Spacer(Modifier.height(8.dp))
 
         SidebarItem(
-            label = "Relatórios",
-            isSelected = currentScreen is DashboardScreen.Reports,
-            onClick = { onScreenSelected(DashboardScreen.Reports(reportId = "monthly")) }
+            label = "Validar",
+            isSelected = currentScreen is DashboardScreen.Validar,
+            onClick = { onScreenSelected(DashboardScreen.Validar) }
+        )
+        Spacer(Modifier.height(8.dp))
+
+        SidebarItem(
+            label = "Meu Perfil",
+            isSelected = currentScreen is DashboardScreen.MeuPerfil,
+            onClick = { onScreenSelected(DashboardScreen.MeuPerfil) }
         )
     }
 }

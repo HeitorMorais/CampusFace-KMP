@@ -1,12 +1,16 @@
 package com.campusface.navigation
 
-// commonMain/kotlin/DashboardNavigation.kt
-
 import androidx.compose.runtime.Immutable
 
 @Immutable
 sealed class DashboardScreen {
-    data object Overview : DashboardScreen()
-    data object Settings : DashboardScreen()
-    data class Reports(val reportId: String) : DashboardScreen()
+    data object Membro : DashboardScreen()
+    data object AdicionarMembro : DashboardScreen()
+
+    data object Administrar : DashboardScreen()
+    data class DetalhesHub(val hubId: String) : DashboardScreen()
+
+    data object Validar : DashboardScreen()
+
+    data object MeuPerfil : DashboardScreen()
 }
