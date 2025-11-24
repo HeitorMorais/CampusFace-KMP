@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -70,10 +71,9 @@ fun AdministrarScreen(
     Column(Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.SpaceBetween, // Melhor para alinhar Texto e Botão
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text("Hubs que administro", fontSize = 30.sp)
 
