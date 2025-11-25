@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 
 // Supondo que você tenha estas mocks e data classes (elas devem estar em commonMain)
 import com.campusface.data.Hub
@@ -23,9 +24,10 @@ import com.campusface.data.mockSolicitacoesEntrada
 import com.campusface.data.mockSolicitacoesAtualizacao
 
 @Composable
-fun HubDetailsWithTabs(
+fun DetalhesHubScreen(
     hubId: String,
-    onVoltar: () -> Unit
+    // 🎯 MUDANÇA: Receber o NavHostController
+    navController: NavHostController
 ) {
     // 1. Busca de Dados do Hub
     // Converte o ID String para Int se o ID do Hub for Int
@@ -43,9 +45,8 @@ fun HubDetailsWithTabs(
     var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
     val selectedContentColor = MaterialTheme.colorScheme.primary
     val unselectedContentColor = Color.Gray
-    Column(modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally) {
+
+    Column(modifier = Modifier.fillMaxSize()) { // Removi o Center/Center, pois o header precisa começar do topo
 
         // --- Header e Botão de Voltar ---
         Row(
@@ -54,7 +55,8 @@ fun HubDetailsWithTabs(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onVoltar) {
+            // 🔑 AÇÃO: Usa popBackStack() no clique
+            IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar para lista")
             }
             Spacer(Modifier.width(8.dp))
@@ -67,7 +69,6 @@ fun HubDetailsWithTabs(
         PrimaryTabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = Color.Transparent,
-            // 💡 Define o contentColor base para a COR SELECIONADA
             contentColor = selectedContentColor
         ) {
             tabs.forEachIndexed { index, title ->
@@ -79,7 +80,6 @@ fun HubDetailsWithTabs(
                     text = {
                         Text(
                             title,
-                            // 🚨 LÓGICA DE COR AQUI:
                             color = if (isSelected) selectedContentColor else unselectedContentColor
                         )
                     }

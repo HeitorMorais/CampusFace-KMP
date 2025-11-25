@@ -1,71 +1,73 @@
+// commonMain/kotlin/com/campusface/components/BottomBar.kt
 package com.campusface.components
 
-// commonMain/kotlin/components/CampusfaceBottomBar.kt
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.campusface.navigation.DashboardScreen // Assume que este é seu sealed class/enum
+import androidx.compose.runtime.getValue
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.campusface.navigation.DashboardRoute // Assumindo o import das suas rotas
 
-// Data class para estruturar os itens de navegação
-data class BottomNavItem(
-    val label: String,
-    val icon: ImageVector,
-    val screen: DashboardScreen
-)
-val bottomNavItems = listOf(
-    BottomNavItem(
-        label = "Membro",
-        icon = Icons.Filled.People,
-        screen = DashboardScreen.Membro
-    ),
-    BottomNavItem(
-        label = "Administrar",
-        icon = Icons.Filled.Settings,
-        screen = DashboardScreen.Administrar
-    ),
-    BottomNavItem(
-        label = "Validar",
-        icon = Icons.Filled.CheckCircle,
-        screen = DashboardScreen.Validar
-    ),
-    BottomNavItem(
-        label = "Meu Perfil",
-        icon = Icons.Filled.Person,
-        screen = DashboardScreen.MeuPerfil
-    )
+// 🚨 Reutiliza ou define os nomes de rota constantes para evitar a reflexão:
+private object RouteNames {
+    const val MEMBRO = "com.campusface.navigation.DashboardRoute.Membro"
+    const val ADMINISTRAR = "com.campusface.navigation.DashboardRoute.Administrar"
+    const val MEU_PERFIL = "com.campusface.navigation.DashboardRoute.MeuPerfil"
+
+    const val VALIDAR = "com.campusface.navigation.DashboardRoute.Validar"
+    // Adicione outras rotas da BottomBar se necessário
+
+    const val SAIR =  "com.campusface.navigation.DashboardRoute.Sair"
+}
+
+// 1. Definição Estruturada dos Itens da Barra (Simplificada)
+// Agora usamos a string constante (para seleção) e o objeto (para navegação)
+private val bottomNavItems = listOf(
+    Triple("Membro", DashboardRoute.Membro, RouteNames.MEMBRO),
+    Triple("Admin", DashboardRoute.Administrar, RouteNames.ADMINISTRAR),
+    Triple("Validar", DashboardRoute.Administrar, RouteNames.VALIDAR),
+    Triple("Perfil", DashboardRoute.MeuPerfil, RouteNames.MEU_PERFIL),
+    Triple("Sair", DashboardRoute.MeuPerfil, RouteNames.SAIR)
 )
 
 @Composable
 fun BottomBar(
-    currentScreen: DashboardScreen,
-    onScreenSelected: (DashboardScreen) -> Unit,
-    modifier: Modifier = Modifier
+    navController: NavHostController
 ) {
-    // NavigationBar é o contêiner Material 3 para a barra inferior
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestinationRoute = navBackStackEntry?.destination?.route
+
     NavigationBar(
-        modifier = modifier
-        // containerColor, contentColor, etc., são definidos pelo tema M3
+        containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        // Itera sobre a lista de itens definidos acima
-        bottomNavItems.forEach { item ->
-            // NavigationBarItem é o item de navegação individual
-            val isSelected = currentScreen::class == item.screen::class
+        // Agora iteramos sobre Rótulo, Objeto de Rota e Nome Constante
+        bottomNavItems.forEach { (label, routeObject, routeNameConstant) ->
+
+            // 2. Lógica de Seleção: Compara a rota atual com a String Constante.
+            val isSelected = currentDestinationRoute == routeNameConstant
 
             NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label
-                    )
-                },
-                label = { Text(item.label) },
                 selected = isSelected,
-                onClick = { onScreenSelected(item.screen) }
-                // Cores do item são tratadas automaticamente pelo M3
+                onClick = {
+                    if (!isSelected) {
+                        // 3. Navegação Type-Safe com o objeto
+                        navController.navigate(routeObject) {
+                            navController.graph.startDestinationRoute?.let { startDestinationRoute ->
+                                popUpTo(startDestinationRoute) {
+                                    saveState = true
+                                }
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+                icon = { /* Item vazio */ },
+                label = { Text(label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                )
             )
         }
     }

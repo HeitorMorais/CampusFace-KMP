@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat // 🚨 IMPORTE ISSO!
-import com.campusface.App
+import com.campusface.theme.CampusFaceTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,11 +21,11 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-
-                App() // Seu composable principal
+                App()
+                } // Seu composable principal
             }
         }
-    }
+
 
 @Preview
 @Composable

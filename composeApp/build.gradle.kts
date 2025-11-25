@@ -8,8 +8,9 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    kotlin("plugin.serialization") version "2.2.20"
+
 }
-// composeApp/build.gradle.kts
 
 kotlin {
     jvm()
@@ -38,7 +39,6 @@ kotlin {
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
 
                     static = (static ?: mutableListOf()).apply {
-                        // Serve sources to debug inside browser
                         add(rootDirPath)
                         add(projectDirPath)
                     }
@@ -63,9 +63,7 @@ kotlin {
             implementation("org.jetbrains.compose.animation:animation")
             implementation("io.insert-koin:koin-core:4.1.0")
             implementation("io.insert-koin:koin-compose:4.1.0")
-            // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-browser
-          //  implementation("androidx.navigation:navigation-compose:2.7.0")
-           // implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.0")
+            implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

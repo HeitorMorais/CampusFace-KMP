@@ -24,32 +24,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 
 
 @Composable
 fun AdicionarMembroScreen(
-    onVoltarParaMembro: () -> Unit
+    // 🎯 MUDANÇA: Receber o NavHostController em vez do callback
+    navController: NavHostController
 ) {
     var nome by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Top, // Coluna principal começa do topo
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        // Cabeçalho com botão Voltar
         Row(
             modifier = Modifier
-                .fillMaxWidth() // Ocupa toda a largura para o padding funcionar
-                .padding(16.dp),
-            // 🔑 1. Alinha todos os itens (Ícone e Texto) no centro vertical da Row
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            // 🔑 2. Usa o SpaceBetween para forçar o Ícone para a esquerda e o Texto/Título
-            // para a direita ou apenas Center se quiser o grupo centralizado.
-            // Para um cabeçalho de tela, o Arrangement.Start é mais comum.
-            horizontalArrangement = Arrangement.Start // Alinha os itens à esquerda
+            horizontalArrangement = Arrangement.Start
         ) {
-            // IconButton já está alinhado na Row
+            // 🔑 AÇÃO: Usa popBackStack() em vez de onVoltarParaMembro
             IconButton(
-                onClick = onVoltarParaMembro
+                onClick = { navController.popBackStack() }
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -57,33 +58,31 @@ fun AdicionarMembroScreen(
                 )
             }
 
-            // Adiciona um espaçamento horizontal entre o ícone e o texto (opcional)
             Spacer(modifier = Modifier.width(8.dp))
 
-            // O Texto está alinhado verticalmente com o ícone graças ao verticalAlignment
-            Text("Entrar em um hub")
-
+            // Para garantir que o título fique centralizado, mesmo com o ícone
+            Box(
+                modifier = Modifier.weight(1f), // Ocupa o restante do espaço
+                contentAlignment = Alignment.CenterStart // Centraliza o texto dentro do Box
+            ) {
+                Text("Entrar em um hub")
+            }
         }
 
-
-        // ... (dentro do Box, após o IconButton, etc.)
-
+        // Formulário
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 80.dp)
+                // Ajuste o paddingTop para evitar sobreposição com o cabeçalho
+                .padding(top = 16.dp)
                 .padding(horizontal = 32.dp),
-            // 🔑 O ALINHAMENTO HORIZONTAL DO COLUMN ESTÁ CENTRALIZADO
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // 🔑 MUDANÇA AQUI: Aplicar o alinhamento `Start` apenas ao Text
             Text(
                 "Digite o código do hub",
                 modifier = Modifier
-                    .fillMaxWidth() // Ocupa a mesma largura do TextField abaixo
-                    .align(Alignment.Start) // Força o alinhamento à esquerda (Start)
-                    .padding(bottom = 8.dp) // Adiciona um pequeno espaço abaixo do rótulo
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
             )
 
             TextField(
@@ -97,7 +96,10 @@ fun AdicionarMembroScreen(
 
             Button(
                 onClick = {
-                    onVoltarParaMembro()
+                    // 🎯 AÇÃO: No sucesso, volta para a tela anterior
+                    // Aqui você chamaria a ViewModel para a lógica de "Solicitar Entrada"
+                    // Por enquanto, apenas simula o retorno
+                    navController.popBackStack()
                 },
                 enabled = nome.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,13 +24,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.campusface.data.Hub
+// ... outros imports
 
-val hubsList = listOf(
-    Hub(1, "Fatec Zona Leste", "ativo"),
-    Hub(2, "Fatec Itaquera", "solicitado"),
-    Hub(3, "Fatec São Paulo", "solicitado")
-)
+// Adicionar importações de navegação
+import androidx.navigation.NavHostController
+import com.campusface.navigation.DashboardRoute // Importa suas rotas de dashboard
+import com.campusface.data.Hub // Importa o modelo Hub
+import com.campusface.data.hubsList
 
 @Composable
 fun StatusCircle(tamanho: Dp = 12.dp, color: Color) {
@@ -39,70 +41,73 @@ fun StatusCircle(tamanho: Dp = 12.dp, color: Color) {
     )
 }
 
-
 @Composable
 fun HubCard(hub : Hub) {
     val statusColor = when (hub.status?.lowercase()) {
         "ativo" -> Color.Green
         "solicitado" -> Color.Yellow
-
         else -> Color.Gray
     }
 
     Card(
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = hub.nome
-            )
+            Text(text = hub.nome, style = MaterialTheme.typography.bodyMedium)
 
-            Row(modifier = Modifier
-                .padding(4.dp),
+            Row(
+                modifier = Modifier.padding(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp) // Usa spacedBy para espaçamento
             ) {
                 StatusCircle(color = statusColor, tamanho = 10.dp)
-                hub.status?.let { Text(text = it) }
+                hub.status?.let { Text(text = it, style=MaterialTheme.typography.bodySmall) }
             }
         }
     }
-
 }
+
 @Composable
-fun HubListCard(
-) {
-    LazyColumn {
+fun HubListCard() {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) { // Adicione fillMaxWidth para ocupar o espaço
         items(hubsList) { hubAtual ->
             HubCard(hub = hubAtual)
         }
     }
 }
+
+// 🎯 FUNÇÃO PRINCIPAL: Recebe o NavController
 @Composable
-fun MembroScreen(onAdicionarClick: () -> Unit) {
-    Column(Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
+fun MembroScreen(navController: NavHostController) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = Modifier.
-            padding(5.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly) {
-            Text("Hubs que sou membro", fontSize = 30.sp)
-            // 🔑 O BOTÃO "ADICIONAR MEMBRO"
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween, // Melhor ajuste para Título e Botão
+
+        ) {
+            Text("Hubs que sou membro", style = MaterialTheme.typography.titleMedium) // Reduzi um pouco a fonte para caber
+
+            // 🔑 AÇÃO DE NAVEGAÇÃO
             Button(
-                onClick = onAdicionarClick,
-                modifier = Modifier.padding(bottom = 24.dp)
+                onClick = {
+                    // Usar o NavController para navegar para a rota de AdicionarMembro
+                    navController.navigate(DashboardRoute.AdicionarMembro)
+                },
+                modifier = Modifier
             ) {
-                Text("Adicionar Membro")
+                Text("Adicionar Membro", style=MaterialTheme.typography.labelMedium)
             }
         }
+
         HubListCard()
     }
 }
