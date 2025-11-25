@@ -63,6 +63,12 @@ fun Sidebar(
             isSelected = currentRouteName == DashboardRouteNames.MEU_PERFIL,
             onClick = { navController.navigate(DashboardRoute.MeuPerfil) }
         )
+
+        SidebarItem(
+            label = "Sair",
+            isSelected = currentRouteName == DashboardRouteNames.SAIR,
+            onClick = { navController.navigate(DashboardRoute.Sair) }
+        )
     }
 }
 
@@ -86,7 +92,7 @@ fun SidebarItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
             Text(
                 text = label,
                 color = contentColor,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.labelMedium
             )
         }
     }

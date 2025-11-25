@@ -1,4 +1,3 @@
-// commonMain/kotlin/com/campusface/auth/AuthRepository.kt
 package com.campusface.auth
 
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -6,10 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-// Modelo simples de Usuário
 data class User(val id: String, val name: String)
 
-// Estado da Autenticação
 data class AuthState(
     val isAuthenticated: Boolean = false,
     val user: User? = null,

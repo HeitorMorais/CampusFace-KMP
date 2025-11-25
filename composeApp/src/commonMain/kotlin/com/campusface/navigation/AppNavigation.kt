@@ -18,6 +18,7 @@ sealed interface AppRoute {
     data object DashboardGraph : AppRoute
 
     @Serializable
+    @SerialName("")
     data object Splash : AppRoute
 
     // Se fosse necessário passar um ID de usuário após o login:

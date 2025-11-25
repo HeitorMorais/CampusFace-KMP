@@ -34,7 +34,6 @@ fun DashboardLayout(
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
-        // 2. 📏 DETECTAR TAMANHO (Breakpoint para Sidebar/BottomBar)
         val isMobile = maxWidth < 600.dp
 
         if (isMobile) {
@@ -81,7 +80,7 @@ fun DashboardContentNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = DashboardRoute.Membro, // 🚀 Objeto tipado, não string
+        startDestination = DashboardRoute.Membro,
         modifier = modifier
     ) {
         // Rotas Simples

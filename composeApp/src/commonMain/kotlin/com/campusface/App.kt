@@ -1,5 +1,8 @@
 package com.campusface
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
@@ -18,49 +21,54 @@ fun App(
     onNavHostReady: suspend (NavHostController) -> Unit = {}
 ) {
     CampusFaceTheme {
-    // 1. Instancia o Repositório (Em app real, use Koin/DI)
     val authRepository = remember { AuthRepository() }
 
-    // 2. Provider do Auth
-    CompositionLocalProvider(LocalAuthRepository provides authRepository) {
 
-        // 3. Controle de Navegação e Estado
-        val navController = rememberNavController()
-        val authState by authRepository.authState.collectAsState()
+        CompositionLocalProvider(LocalAuthRepository provides authRepository) {
 
-        // Redirecionamento Inteligente
-        LaunchedEffect(authState.isAuthenticated) {
-            if (authState.isAuthenticated) {
-                navController.navigate(AppRoute.DashboardGraph) {
-                    popUpTo(AppRoute.Login) { inclusive = true }
+            val navController = rememberNavController()
+            val authState by authRepository.authState.collectAsState()
+
+
+            LaunchedEffect(authState.isAuthenticated) {
+                if (authState.isAuthenticated) {
+                    navController.navigate(AppRoute.DashboardGraph) {
+                        popUpTo(AppRoute.Login) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(AppRoute.Login) {
+                        popUpTo(AppRoute.DashboardGraph) { inclusive = true }
+                    }
                 }
-            } else {
-                navController.navigate(AppRoute.Login) {
-                    popUpTo(AppRoute.DashboardGraph) { inclusive = true }
+            }
+            LaunchedEffect(navController) {
+                onNavHostReady(navController)
+            }
+            NavHost(
+                navController = navController,
+                startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login
+            ) {
+                composable<AppRoute.Login> {
+                    LoginScreen()
+                }
+
+                composable<AppRoute.DashboardGraph> {
+                    // 🔑 CHAVE AQUI: Proteção contra manipulação de URL
+                    if (authState.isAuthenticated) {
+                        // Se estiver autenticado, carrega o conteúdo
+                        val dashboardNavController = rememberNavController()
+                        DashboardLayout(navController = dashboardNavController)
+                    } else {
+                        LaunchedEffect(Unit) {
+                            navController.navigate(AppRoute.Login) {
+                                popUpTo(AppRoute.DashboardGraph) { inclusive = true }
+                            }
+                        }
+
+                        Box(Modifier.fillMaxSize())
+                    }
                 }
             }
         }
-        LaunchedEffect(navController) {
-            onNavHostReady(navController)
-        }
-        // 4. NavHost Raiz (Switch entre Login e o "Mundo Dashboard")
-        NavHost(
-            navController = navController,
-            startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login
-        ) {
-            // Rota de Login (Tela cheia)
-            composable<AppRoute.Login> {
-                LoginScreen()
-            }
-
-            composable<AppRoute.DashboardGraph> {
-                // Criamos um controller separado para a navegação INTERNA do dashboard
-                // Isso isola a navegação lateral da navegação de Login/Logout
-                val dashboardNavController = rememberNavController()
-
-                DashboardLayout(navController = dashboardNavController)
-            }
-        }
-    }
     }
 }
