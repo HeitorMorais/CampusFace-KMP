@@ -1,5 +1,4 @@
 package com.campusface.screens.administrarScreen
-// Adapte o pacote conforme a localização do seu arquivo
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.*
@@ -8,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.campusface.components.AdaptiveScreenContainer
 
 // Supondo que você tenha estas mocks e data classes (elas devem estar em commonMain)
 import com.campusface.data.Hub
@@ -26,11 +27,8 @@ import com.campusface.data.mockSolicitacoesAtualizacao
 @Composable
 fun DetalhesHubScreen(
     hubId: String,
-    // 🎯 MUDANÇA: Receber o NavHostController
     navController: NavHostController
 ) {
-    // 1. Busca de Dados do Hub
-    // Converte o ID String para Int se o ID do Hub for Int
     val hub = remember { hubsList.firstOrNull { it.id.toString() == hubId } }
 
     if (hub == null) {
@@ -40,28 +38,27 @@ fun DetalhesHubScreen(
         return
     }
 
-    // 2. Gerenciamento do Estado da Aba
     val tabs = listOf("Membros", "Solicitação de Entrada", "Solicitação de Atualização")
     var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
     val selectedContentColor = MaterialTheme.colorScheme.primary
     val unselectedContentColor = Color.Gray
+    AdaptiveScreenContainer(){
+    Column(modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally) {
 
-    Column(modifier = Modifier.fillMaxSize()) { // Removi o Center/Center, pois o header precisa começar do topo
-
-        // --- Header e Botão de Voltar ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 🔑 AÇÃO: Usa popBackStack() no clique
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar para lista")
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = hub.nome ?: "Hub sem Nome",
+                text = hub.nome,
                 style = MaterialTheme.typography.headlineMedium
             )
         }
@@ -88,7 +85,6 @@ fun DetalhesHubScreen(
         }
 
 
-        // --- Conteúdo da Aba Selecionada ---
         Crossfade(
             targetState = selectedTabIndex,
             label = "Tab Content Transition",
@@ -100,12 +96,8 @@ fun DetalhesHubScreen(
                 2 -> TabContentSolicitacaoAtualizacao(hub)
             }
         }
-    }
+    }}
 }
-
-// ----------------------------------------------------
-// --- CONTEÚDO DAS ABAS ---
-// ----------------------------------------------------
 
 @Composable
 fun TabContentMembros(hub: Hub) {
@@ -116,17 +108,14 @@ fun TabContentMembros(hub: Hub) {
                 text = "Membros Ativos: $quantidade",
                 fontWeight = FontWeight.Bold
             )
-            Divider(Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
         }
-        // Aqui iriam os itens reais da lista de membros (UsuarioCard)
-        // Por exemplo:
-        // items(membrosDoHub) { membro -> Text(membro.nome) }
     }
 }
 
 @Composable
 fun TabContentSolicitacaoEntrada(hub: Hub) {
-    // Filtrando mocks pelo ID do Hub (simulação)
+
     val solicitacoes = mockSolicitacoesEntrada.filter { it.hubId.toString() == hub.id.toString() }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -136,16 +125,14 @@ fun TabContentSolicitacaoEntrada(hub: Hub) {
         }
 
         items(solicitacoes) { solicitacao ->
-            // Você deve criar o SolicitacaoCard que tem botões Aceitar/Recusar
             Text(text = "Solicitação de: ${solicitacao.solicitante.nome}", modifier = Modifier.padding(16.dp))
-            Divider()
+            HorizontalDivider()
         }
     }
 }
 
 @Composable
 fun TabContentSolicitacaoAtualizacao(hub: Hub) {
-    // Filtrando mocks pelo ID do Hub (simulação)
     val atualizacoes = mockSolicitacoesAtualizacao.filter { it.hubId.toString() == hub.id.toString() }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -155,9 +142,8 @@ fun TabContentSolicitacaoAtualizacao(hub: Hub) {
         }
 
         items(atualizacoes) { solicitacao ->
-            // Você deve criar o AtualizacaoFotoCard que mostra as duas fotos e botões
             Text(text = "Atualização de Foto para: ${solicitacao.solicitante.nome}", modifier = Modifier.padding(16.dp))
-            Divider()
+            HorizontalDivider()
         }
     }
 }

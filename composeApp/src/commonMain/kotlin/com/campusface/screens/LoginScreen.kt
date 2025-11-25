@@ -12,10 +12,7 @@ import com.campusface.auth.AuthRepository
 
 @Composable
 fun LoginScreen(
-    // Não precisamos de navController aqui, pois a navegação é tratada
-    // pela observação do AuthState no App.kt
 ) {
-    // 1. Acesso ao AuthRepository via CompositionLocal
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
 
@@ -23,19 +20,19 @@ fun LoginScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize() // O Column deve ocupar a largura máxima
+            .fillMaxSize()
             .padding(24.dp),
-        // 🔑 CHAVE AQUI: Alinhamento Horizontal
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center // Opcional: Centraliza verticalmente o conteúdo
-    ) {
-        // ... (Componentes de Email, Senha, etc.)
 
-        // 🎯 O BOTÃO VAI HERDAR O ALINHAMENTO DO PAI
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+
+
+
         Button(
             onClick = { authRepository.login(username)},
             modifier = Modifier
-                .fillMaxWidth() // Opcional: faz o botão ocupar toda a largura disponível
+                .fillMaxWidth()
                 .padding(top = 16.dp)
         ) {
             Text("Entrar")

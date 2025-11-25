@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.campusface.components.AdaptiveScreenContainer
 
 
 @Composable
@@ -33,10 +34,10 @@ fun AdicionarMembroScreen(
     navController: NavHostController
 ) {
     var nome by remember { mutableStateOf("") }
-
+    AdaptiveScreenContainer(){
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Top, // Coluna principal começa do topo
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -107,5 +108,5 @@ fun AdicionarMembroScreen(
                 Text("Solicitar entrada")
             }
         }
-    }
+    }}
 }

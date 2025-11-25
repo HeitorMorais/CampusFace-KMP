@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.data.Hub
 import com.campusface.data.hubsList
 import com.campusface.navigation.DashboardRoute
@@ -57,9 +58,9 @@ fun HubCard(
 
 @Composable
 fun AdministrarScreen(navController: NavHostController) {
-
+    AdaptiveScreenContainer(){
     Column(Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Top,
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally) {
 
         FlowRow(
@@ -92,5 +93,5 @@ fun AdministrarScreen(navController: NavHostController) {
                 )
             }
         }
-    }
+    }}
 }

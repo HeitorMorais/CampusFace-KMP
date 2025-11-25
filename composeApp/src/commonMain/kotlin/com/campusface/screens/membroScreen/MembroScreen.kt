@@ -23,11 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-// ... outros imports
+
 
 // Adicionar importações de navegação
 import androidx.navigation.NavHostController
+import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.DashboardRoute // Importa suas rotas de dashboard
 import com.campusface.data.Hub // Importa o modelo Hub
 import com.campusface.data.hubsList
@@ -73,33 +73,31 @@ fun HubCard(hub : Hub) {
 
 @Composable
 fun HubListCard() {
-    LazyColumn(modifier = Modifier.fillMaxWidth()) { // Adicione fillMaxWidth para ocupar o espaço
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
         items(hubsList) { hubAtual ->
             HubCard(hub = hubAtual)
         }
     }
 }
-
-// 🎯 FUNÇÃO PRINCIPAL: Recebe o NavController
 @Composable
 fun MembroScreen(navController: NavHostController) {
+    AdaptiveScreenContainer(){
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween, // Melhor ajuste para Título e Botão
+            horizontalArrangement = Arrangement.SpaceBetween,
 
         ) {
-            Text("Hubs que sou membro", style = MaterialTheme.typography.titleMedium) // Reduzi um pouco a fonte para caber
+            Text("Hubs que sou membro", style = MaterialTheme.typography.titleMedium)
 
-            // 🔑 AÇÃO DE NAVEGAÇÃO
             Button(
                 onClick = {
-                    // Usar o NavController para navegar para a rota de AdicionarMembro
                     navController.navigate(DashboardRoute.AdicionarMembro)
                 },
                 modifier = Modifier
@@ -109,5 +107,6 @@ fun MembroScreen(navController: NavHostController) {
         }
 
         HubListCard()
+    }
     }
 }
