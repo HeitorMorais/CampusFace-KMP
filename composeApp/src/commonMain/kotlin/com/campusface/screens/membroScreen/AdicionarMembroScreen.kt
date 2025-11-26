@@ -1,4 +1,3 @@
-// commonMain/kotlin/screens/AdicionarMembroScreen.kt
 package com.campusface.screens.membroScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box // 🆕 Importado
@@ -14,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack // 🆕 Imp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon // 🆕 Importado
 import androidx.compose.material3.IconButton // 🆕 Importado
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -30,7 +30,6 @@ import com.campusface.components.AdaptiveScreenContainer
 
 @Composable
 fun AdicionarMembroScreen(
-    // 🎯 MUDANÇA: Receber o NavHostController em vez do callback
     navController: NavHostController
 ) {
     var nome by remember { mutableStateOf("") }
@@ -40,16 +39,13 @@ fun AdicionarMembroScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // Cabeçalho com botão Voltar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.Center
         ) {
-            // 🔑 AÇÃO: Usa popBackStack() em vez de onVoltarParaMembro
             IconButton(
                 onClick = { navController.popBackStack() }
             ) {
@@ -61,19 +57,17 @@ fun AdicionarMembroScreen(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Para garantir que o título fique centralizado, mesmo com o ícone
             Box(
-                modifier = Modifier.weight(1f), // Ocupa o restante do espaço
-                contentAlignment = Alignment.CenterStart // Centraliza o texto dentro do Box
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Text("Entrar em um hub")
+                Text("Entrar em um hub", style = MaterialTheme.typography.titleMedium)
             }
         }
 
-        // Formulário
+        // formulario
         Column(
             modifier = Modifier
-                // Ajuste o paddingTop para evitar sobreposição com o cabeçalho
                 .padding(top = 16.dp)
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -83,7 +77,8 @@ fun AdicionarMembroScreen(
                 "Digite o código do hub",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = 8.dp),
+                style = MaterialTheme.typography.bodyMedium
             )
 
             TextField(

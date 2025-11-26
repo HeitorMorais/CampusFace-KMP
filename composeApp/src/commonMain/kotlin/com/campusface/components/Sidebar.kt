@@ -1,99 +1,142 @@
-// commonMain/kotlin/com/campusface/components/Sidebar.kt
 package com.campusface.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.campusface.navigation.DashboardRoute
 import com.campusface.navigation.DashboardRouteNames
-// 🚨 Define os nomes completos das rotas como strings literais para evitar Reflexão no Wasm
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+
+data class RailItem(
+    val label: String,
+    val route: String,
+    val icon: ImageVector,
+    val destination: DashboardRoute
+)
+
+private val railItems = listOf(
+    RailItem(
+        label = "Membro",
+        route = DashboardRouteNames.MEMBRO,
+        icon = Icons.Filled.Home, // Exemplo
+        destination = DashboardRoute.Membro
+    ),
+    RailItem(
+        label = "Administrar",
+        route = DashboardRouteNames.ADMINISTRAR,
+        icon = Icons.Filled.Settings, // Exemplo
+        destination = DashboardRoute.Administrar
+    ),
+    RailItem(
+        label = "Validar",
+        route = DashboardRouteNames.VALIDAR,
+        icon = Icons.Filled.Check, // Exemplo
+        destination = DashboardRoute.Validar
+    ),
+    RailItem(
+        label = "Meu Perfil",
+        route = DashboardRouteNames.MEU_PERFIL,
+        icon = Icons.Filled.Person, // Exemplo
+        destination = DashboardRoute.MeuPerfil
+    ),
+//    RailItem(
+//        label = "Sair",
+//        route = DashboardRouteNames.SAIR,
+//        icon = Icons.Filled.ExitToApp, // Exemplo
+//        destination = DashboardRoute.Sair
+//    ),
+)
+
 
 @Composable
 fun Sidebar(
-    navController: NavHostController // Recebe apenas o NavController
+    navController: NavHostController
 ) {
-    // 1. 🧭 OBTÉM A ROTA ATUAL INTERNAMENTE
+    val cores = NavigationRailItemDefaults.colors(
+        selectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone selecionado
+        selectedTextColor = MaterialTheme.colorScheme.background,   // Muda o texto selecionado
+        indicatorColor = MaterialTheme.colorScheme.primary, // Muda o fundo/indicador selecionado
+
+        unselectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone não-selecionado
+        unselectedTextColor = MaterialTheme.colorScheme.primary,   // Muda o texto não-selecionado
+    )
+
     val backStackEntry by navController.currentBackStackEntryAsState()
+
     val currentRouteName = backStackEntry?.destination?.route
 
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(200.dp)
-            .background(Color.LightGray.copy(alpha = 0.3f))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.Start
+    NavigationRail(
+        modifier = Modifier.fillMaxHeight().padding(20.dp),
+        containerColor = Color.Transparent
     ) {
-        // --- Membro (Rota principal) ---
-        SidebarItem(
-            label = "Membro",
-            // 🔑 VERIFICAÇÃO: Compara com a string literal
-            isSelected = currentRouteName == DashboardRouteNames.MEMBRO,
-            onClick = { navController.navigate(DashboardRoute.Membro) }
-        )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.weight(1f))
 
-        // --- Administrar ---
-        SidebarItem(
-            label = "Administrar",
-            isSelected = currentRouteName == DashboardRouteNames.ADMINISTRAR,
-            onClick = { navController.navigate(DashboardRoute.Administrar) }
-        )
-        Spacer(Modifier.height(8.dp))
+        railItems.forEach { item ->
+            val isSelected = currentRouteName == item.route
 
-        // --- Validar ---
-        SidebarItem(
-            label = "Validar",
-            isSelected = currentRouteName == DashboardRouteNames.VALIDAR,
-            onClick = { navController.navigate(DashboardRoute.Validar) }
-        )
-        Spacer(Modifier.height(8.dp))
+            NavigationRailItem(
+                colors = cores,
+                modifier = Modifier.padding(10.dp),
+                selected = isSelected,
+                onClick = {
 
-        // --- Meu Perfil ---
-        SidebarItem(
-            label = "Meu Perfil",
-            isSelected = currentRouteName == DashboardRouteNames.MEU_PERFIL,
-            onClick = { navController.navigate(DashboardRoute.MeuPerfil) }
-        )
-
-        SidebarItem(
-            label = "Sair",
-            isSelected = currentRouteName == DashboardRouteNames.SAIR,
-            onClick = { navController.navigate(DashboardRoute.Sair) }
-        )
-    }
-}
-
-@Composable
-fun SidebarItem(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.DarkGray
-
-    Surface(
-        onClick = onClick,
-        color = backgroundColor,
-        shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Spacer(Modifier.width(8.dp))
-
-            Text(
-                text = label,
-                color = contentColor,
-                style = MaterialTheme.typography.labelMedium
+                    if (!isSelected) {
+                        navController.navigate(item.destination) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
+                icon = {
+                    Icon(
+                        item.icon,
+                        contentDescription = item.label
+                    )
+                },
+                label = { Text(item.label, color=MaterialTheme.colorScheme.primary) },
             )
         }
+        val isSelectedSair = currentRouteName == DashboardRouteNames.SAIR
+        NavigationRailItem(
+            colors = cores,
+            modifier = Modifier.weight(1f),
+            selected = isSelectedSair,
+            onClick = {
+
+                if (!isSelectedSair) {
+                    navController.navigate(DashboardRoute.Sair) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
+            icon = {
+                Icon(
+                     Icons.Filled.ExitToApp,
+                    contentDescription = "Sair"
+                )
+            },
+            label = { Text("Sair") },
+        )
+
     }
 }

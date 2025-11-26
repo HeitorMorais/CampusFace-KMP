@@ -73,6 +73,7 @@ fun DashboardContentNavHost(
     ) {
         composable<DashboardRoute.Membro> {
             MembroScreen(navController = navController)
+
         }
 
         composable<DashboardRoute.AdicionarMembro> {
@@ -96,6 +97,14 @@ fun DashboardContentNavHost(
 
             DetalhesHubScreen(
                 hubId = rota.hubId,
+                navController = navController
+            )
+        }
+
+        composable<DashboardRoute.QrCode> { backStackEntry ->
+            val rota = backStackEntry.toRoute<DashboardRoute.QrCode>()
+
+            QrCodeScreen(
                 navController = navController
             )
         }

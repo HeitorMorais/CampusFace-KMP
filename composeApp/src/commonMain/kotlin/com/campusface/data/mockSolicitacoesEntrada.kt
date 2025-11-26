@@ -1,5 +1,6 @@
 package com.campusface.data
 
+
 val usuarioAlice = Usuario(
     id = "u101",
     nome = "Alice Chaves",
@@ -23,6 +24,8 @@ val usuarioCecilia = Usuario(
     email = "cecilia@mail.com",
     fotoPerfilUrl = "http://mockserver.com/foto_cecilia_v1.jpg"
 )
+
+val membros = listOf<Usuario>(usuarioCecilia, usuarioBeto, usuarioAlice )
 
 val mockSolicitacoesEntrada = listOf(
     SolicitacaoEntrada(

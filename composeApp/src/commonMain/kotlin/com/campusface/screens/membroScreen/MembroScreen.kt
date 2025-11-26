@@ -1,6 +1,7 @@
 package com.campusface.screens.membroScreen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,9 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-
-
-// Adicionar importações de navegação
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.DashboardRoute // Importa suas rotas de dashboard
@@ -42,18 +43,25 @@ fun StatusCircle(tamanho: Dp = 12.dp, color: Color) {
 }
 
 @Composable
-fun HubCard(hub : Hub) {
+fun HubCard(hub : Hub, navController: NavHostController) {
     val statusColor = when (hub.status?.lowercase()) {
-        "ativo" -> Color.Green
-        "solicitado" -> Color.Yellow
+        "ativo" -> Color(0xFF00A12B) // verde
+        "solicitado" -> Color(0xFFFFBB00) // amarelo
         else -> Color.Gray
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth().
+            padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = { navController.navigate(DashboardRoute.QrCode) }),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(33.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -62,20 +70,20 @@ fun HubCard(hub : Hub) {
             Row(
                 modifier = Modifier.padding(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp) // Usa spacedBy para espaçamento
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatusCircle(color = statusColor, tamanho = 10.dp)
-                hub.status?.let { Text(text = it, style=MaterialTheme.typography.bodySmall) }
+                hub.status?.let { Text(text = it, style=MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)}
             }
         }
     }
 }
 
 @Composable
-fun HubListCard() {
+fun HubListCard(navController: NavHostController) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
         items(hubsList) { hubAtual ->
-            HubCard(hub = hubAtual)
+            HubCard(hub = hubAtual, navController = navController)
         }
     }
 }
@@ -90,8 +98,9 @@ fun MembroScreen(navController: NavHostController) {
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.Center
 
         ) {
             Text("Hubs que sou membro", style = MaterialTheme.typography.titleMedium)
@@ -102,11 +111,11 @@ fun MembroScreen(navController: NavHostController) {
                 },
                 modifier = Modifier
             ) {
-                Text("Adicionar Membro", style=MaterialTheme.typography.labelMedium)
+                Text("Adicionar", style=MaterialTheme.typography.labelMedium)
             }
         }
 
-        HubListCard()
+        HubListCard(navController = navController)
     }
     }
 }
