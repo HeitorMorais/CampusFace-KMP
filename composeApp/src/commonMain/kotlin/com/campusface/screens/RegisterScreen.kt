@@ -1,5 +1,6 @@
 package com.campusface.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -21,9 +22,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import campusface.composeapp.generated.resources.Res
+import campusface.composeapp.generated.resources.logo
 import com.campusface.navigation.AppRoute
 import kotlinx.coroutines.launch
-
+import org.jetbrains.compose.resources.painterResource
 
 
 @Composable
@@ -62,16 +65,11 @@ fun RegisterScreen(navController : NavHostController) {
 
             Spacer(Modifier.height(32.dp))
 
-            // 🧑 Ícone top placeholder igual ao login
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFF3F4F6)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("👤", fontSize = 32.sp)
-            }
+            Image(
+                painter = painterResource(Res.drawable.logo),
+                contentDescription = "Ícone",
+                modifier = Modifier.size(90.dp)
+            )
 
             Spacer(Modifier.height(16.dp))
 

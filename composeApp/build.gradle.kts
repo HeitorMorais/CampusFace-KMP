@@ -65,6 +65,7 @@ kotlin {
             implementation("io.insert-koin:koin-compose:4.1.0")
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
             implementation("network.chaintech:qr-kit:3.1.3")
+            implementation("io.coil-kt.coil3:coil-compose:3.3.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -72,12 +73,14 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
         }
         wasmJsMain.dependencies{
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
         }
         androidMain.dependencies{
             implementation("androidx.activity:activity-compose:1.8.2")
+            implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -27,7 +28,8 @@ import qrgenerator.qrkitpainter.rememberQrKitPainter
 @Composable
 fun QrCodeMembroScreen(navController : NavHostController) {
     AdaptiveScreenContainer(){
-        Column(modifier = Modifier.fillMaxSize()){
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally){
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -47,8 +49,12 @@ fun QrCodeMembroScreen(navController : NavHostController) {
             Image(
                 painter = painter,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize().widthIn(450.dp)
+                modifier = Modifier.fillMaxWidth().widthIn(400.dp)
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text("Expira em 27 segundos", style= MaterialTheme.typography.labelMedium)
         }
     }
 }

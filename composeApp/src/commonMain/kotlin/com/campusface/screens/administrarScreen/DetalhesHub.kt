@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
@@ -16,11 +18,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil3.compose.AsyncImage
 import com.campusface.components.AdaptiveScreenContainer
 
 // Supondo que você tenha estas mocks e data classes (elas devem estar em commonMain)
@@ -131,34 +138,37 @@ fun MembroCard(
             )
 
             Spacer(modifier = Modifier.width(8.dp))
-
-            IconButton(
-                onClick = {expanded = true}
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "Menu de Opções"
-                )
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Excluir") },
-                    onClick = {
-                        println("excluido!")
-                        expanded = false
-                    }
-                )
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text("Opção 2") },
-                    onClick = {
-                        println("Opção 2 Selecionada!")
-                        expanded = false
-                    }
-                )
+            Box {
+                IconButton(
+                    onClick = { expanded = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "Menu de Opções"
+                    )
+                }
+                DropdownMenu(
+                    modifier = Modifier,
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    containerColor = MaterialTheme.colorScheme.background
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Excluir") },
+                        onClick = {
+                            println("excluido!")
+                            expanded = false
+                        }
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Opção 2") },
+                        onClick = {
+                            println("Opção 2 Selecionada!")
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -179,17 +189,25 @@ fun TabContentMembros(hub: Hub) {
 // Tab Solicitacao Entrada
 
 @Composable
-fun PhotoCircle(tamanho: Dp = 90.dp) {
-    Box(
-        modifier = Modifier
-            .size(tamanho)
-            .background(color = Color(0xff000000), shape = CircleShape)
-            .padding(4.dp)
+fun PhotoCircle(tamanho: Dp = 70.dp, url : String) {
+    AsyncImage(
+        modifier = Modifier.size(tamanho).padding(4.dp).clip(CircleShape),
+        model = url,
+        contentDescription = null,
+        placeholder = ColorPainter(Color.Yellow),
+        fallback = ColorPainter(Color.Yellow),
+        contentScale = ContentScale.Crop
     )
+//    Box(
+//        modifier = Modifier
+//            .size(tamanho)
+//            .background(color = Color(0xff000000), shape = CircleShape)
+//            .padding(4.dp)
+//    )
 }
 
 @Composable
-fun SolicitacaoEntradaCard() {
+fun SolicitacaoCard(entryRequestPhoto : Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -198,15 +216,23 @@ fun SolicitacaoEntradaCard() {
             Color.Transparent,
         ),
     ) {
-        Row(modifier =  Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        FlowRow(modifier =  Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(modifier = Modifier.padding(10.dp, 0.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ){
-                PhotoCircle()
+                if(entryRequestPhoto) {
+                    PhotoCircle(tamanho = 50.dp, url="https://picsum.photos/200/300")
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Seta pequena",
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.Gray
+                    )
+                }
+                PhotoCircle(url="https://picsum.photos/200/300")
                 Column(modifier = Modifier.fillMaxHeight().padding(0.dp,4.dp)){
                     Text("Nome", style = MaterialTheme.typography.bodyMedium)
                     Text("000.000.000-80", style = MaterialTheme.typography.bodySmall)
@@ -244,7 +270,7 @@ fun TabContentSolicitacaoEntrada(hub: Hub) {
         }
 
         items(solicitacoes) { solicitacao ->
-            SolicitacaoEntradaCard()
+            SolicitacaoCard(entryRequestPhoto = false)
             HorizontalDivider()
         }
     }
@@ -261,7 +287,7 @@ fun TabContentSolicitacaoAtualizacao(hub: Hub) {
         }
 
         items(atualizacoes) { solicitacao ->
-            Text(text = "Atualização de Foto para: ${solicitacao.solicitante.nome}", modifier = Modifier.padding(16.dp))
+            SolicitacaoCard(entryRequestPhoto = true)
             HorizontalDivider()
         }
     }
