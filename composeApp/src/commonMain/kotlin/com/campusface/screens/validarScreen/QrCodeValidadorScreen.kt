@@ -63,7 +63,7 @@ fun QrCodeValidadorScreen(navController : NavHostController) {
     var cameraLens by remember { mutableStateOf(CameraLens.Back) }
     var currentZoomLevel by remember { mutableStateOf(zoomLevels[selectedZoomIndex]) }
     AdaptiveScreenContainer(){
-        Column(modifier = Modifier.fillMaxSize()){
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally){
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -98,7 +98,7 @@ fun QrCodeValidadorScreen(navController : NavHostController) {
                     }
 
                 } else {
-                    Text("Scanner indisponivel")
+                    Text("Scanner só está disponível em ambiente mobile")
                 }
             }
 
