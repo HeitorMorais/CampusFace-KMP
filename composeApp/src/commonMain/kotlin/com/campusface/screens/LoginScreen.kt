@@ -21,6 +21,7 @@ import campusface.composeapp.generated.resources.Res
 import campusface.composeapp.generated.resources.logo
 import com.campusface.auth.AuthRepository
 import com.campusface.auth.LocalAuthRepository
+import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.AppRoute
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -28,6 +29,7 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun LoginScreen(navController : NavHostController) {
+    AdaptiveScreenContainer(){
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
     var username by remember { mutableStateOf("usuario_teste") }
@@ -182,5 +184,6 @@ fun LoginScreen(navController : NavHostController) {
                 )
             }
         }
+    }
     }
 }
