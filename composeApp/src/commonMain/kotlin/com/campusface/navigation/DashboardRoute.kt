@@ -15,8 +15,12 @@ sealed interface DashboardRoute {
     data object AdicionarMembro : DashboardRoute
 
     @Serializable
-    @SerialName("qrcode")
-    data object QrCode : DashboardRoute
+    @SerialName("qrcode-membro")
+    data object QrCodeMembro : DashboardRoute
+
+    @Serializable
+    @SerialName("qrcode-validador")
+    data object QrCodeValidador : DashboardRoute
 
     @Serializable
     @SerialName("administrar")

@@ -12,6 +12,9 @@ sealed interface AppRoute {
     @SerialName("login")
     data object Login : AppRoute
 
+    @Serializable
+    @SerialName("register")
+    data object Register : AppRoute
     // 2. Rota Principal do Dashboard (Não precisa de argumentos no nível superior)
     @Serializable
     @SerialName("dashboard")

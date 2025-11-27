@@ -212,7 +212,7 @@ fun SolicitacaoEntradaCard() {
                     Text("000.000.000-80", style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(),
+            Row(modifier = Modifier,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ){
                 OutlinedButton(

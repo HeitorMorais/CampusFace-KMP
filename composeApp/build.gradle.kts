@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.composeCompiler)
     kotlin("plugin.serialization") version "2.2.20"
 
@@ -59,11 +60,11 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation("cafe.adriel.voyager:voyager-navigator:1.1.0-beta02")
             implementation("org.jetbrains.compose.animation:animation")
             implementation("io.insert-koin:koin-core:4.1.0")
             implementation("io.insert-koin:koin-compose:4.1.0")
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
+            implementation("network.chaintech:qr-kit:3.1.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

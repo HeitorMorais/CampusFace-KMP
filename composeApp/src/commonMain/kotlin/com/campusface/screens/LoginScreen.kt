@@ -1,43 +1,186 @@
-// commonMain/kotlin/com/campusface/screens/LoginScreen.kt
 package com.campusface.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.campusface.auth.LocalAuthRepository // Importa o nosso Provider
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import campusface.composeapp.generated.resources.Res
+import campusface.composeapp.generated.resources.logo
 import com.campusface.auth.AuthRepository
+import com.campusface.auth.LocalAuthRepository
+import com.campusface.navigation.AppRoute
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+
 
 @Composable
-fun LoginScreen(
-) {
+fun LoginScreen(navController : NavHostController) {
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
-
     var username by remember { mutableStateOf("usuario_teste") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
-    Column(
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(Color.White),
+        contentAlignment = Alignment.Center
     ) {
-
-
-
-        Button(
-            onClick = { authRepository.login(username)},
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.widthIn(max = 420.dp)
         ) {
-            Text("Entrar")
+
+
+            Image(
+                painter = painterResource(Res.drawable.logo),
+                contentDescription = "Ícone",
+                modifier = Modifier.size(90.dp)
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = "Entre agora",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1A1A)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "Entre com sua conta do hub",
+                fontSize = 15.sp,
+                color = Color(0xFF6B7280),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            if (errorMessage.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFEE2E2)
+                ) {
+                    Text(
+                        text = errorMessage,
+                        color = Color(0xFFDC2626),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(12.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            //email
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = { Text("Digite seu e-mail", color = Color(0xFFBDBDBD)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Color.Black,
+                    focusedLabelColor = Color.Black,
+                    cursorColor = Color.Black
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            //senha
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                placeholder = { Text("Digite sua senha", color = Color(0xFFBDBDBD)) },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Color.Black,
+                    focusedLabelColor = Color.Black,
+                    cursorColor = Color.Black
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            //entrar
+            Button(
+                onClick = { authRepository.login(username)},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black,
+                    disabledContainerColor = Color(0xFF1A1A1A).copy(alpha = 0.4f)
+                )
+            ) {
+                Text(
+                    text = if (isLoading) "Entrando..." else "Entrar",
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            //criar conta
+            OutlinedButton(
+                onClick = {navController.navigate(AppRoute.Register)},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.Black
+                ),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    width = 1.dp,
+                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE5E7EB))
+                )
+            ) {
+                Text(
+                    text = "Não tenho uma conta",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF6B7280)
+                )
+            }
         }
     }
 }
-
-//

@@ -43,7 +43,7 @@ fun StatusCircle(tamanho: Dp = 12.dp, color: Color) {
 }
 
 @Composable
-fun HubCard(hub : Hub, navController: NavHostController) {
+fun HubCard(hub : Hub, navController: NavHostController, isValidator: Boolean) {
     val statusColor = when (hub.status?.lowercase()) {
         "ativo" -> Color(0xFF00A12B) // verde
         "solicitado" -> Color(0xFFFFBB00) // amarelo
@@ -54,7 +54,7 @@ fun HubCard(hub : Hub, navController: NavHostController) {
         modifier = Modifier
             .fillMaxWidth().
             padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable(onClick = { navController.navigate(DashboardRoute.QrCode) }),
+            .clickable(onClick = { navController.navigate(if(isValidator) DashboardRoute.QrCodeValidador else DashboardRoute.QrCodeMembro) }),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -80,10 +80,10 @@ fun HubCard(hub : Hub, navController: NavHostController) {
 }
 
 @Composable
-fun HubListCard(navController: NavHostController) {
+fun HubListCard(navController: NavHostController, isValidator: Boolean) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
         items(hubsList) { hubAtual ->
-            HubCard(hub = hubAtual, navController = navController)
+            HubCard(hub = hubAtual, navController = navController, isValidator = isValidator)
         }
     }
 }
@@ -115,7 +115,7 @@ fun MembroScreen(navController: NavHostController) {
             }
         }
 
-        HubListCard(navController = navController)
+        HubListCard(navController = navController, isValidator = false)
     }
     }
 }

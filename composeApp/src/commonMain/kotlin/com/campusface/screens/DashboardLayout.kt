@@ -19,6 +19,9 @@ import com.campusface.screens.membroScreen.MembroScreen
 import com.campusface.screens.membroScreen.AdicionarMembroScreen
 import com.campusface.screens.administrarScreen.AdministrarScreen
 import com.campusface.screens.administrarScreen.DetalhesHubScreen
+import com.campusface.screens.membroScreen.QrCodeMembroScreen
+import com.campusface.screens.membroScreen.ValidarScreen
+import com.campusface.screens.validarScreen.QrCodeValidadorScreen
 
 @Composable
 fun DashboardLayout(
@@ -85,7 +88,7 @@ fun DashboardContentNavHost(
         }
 
         composable<DashboardRoute.Validar> {
-            ValidarScreen()
+            ValidarScreen(navController = navController)
         }
 
         composable<DashboardRoute.MeuPerfil> {
@@ -101,10 +104,18 @@ fun DashboardContentNavHost(
             )
         }
 
-        composable<DashboardRoute.QrCode> { backStackEntry ->
-            val rota = backStackEntry.toRoute<DashboardRoute.QrCode>()
+        composable<DashboardRoute.QrCodeMembro> { backStackEntry ->
+            val rota = backStackEntry.toRoute<DashboardRoute.QrCodeMembro>()
 
-            QrCodeScreen(
+            QrCodeMembroScreen(
+                navController = navController
+            )
+        }
+
+        composable<DashboardRoute.QrCodeValidador> { backStackEntry ->
+            val rota = backStackEntry.toRoute<DashboardRoute.QrCodeValidador>()
+
+            QrCodeValidadorScreen(
                 navController = navController
             )
         }

@@ -12,6 +12,7 @@ import com.campusface.auth.LocalAuthRepository
 import com.campusface.navigation.AppRoute
 import com.campusface.screens.DashboardLayout
 import com.campusface.screens.LoginScreen
+import com.campusface.screens.RegisterScreen
 import com.campusface.theme.CampusFaceTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -48,8 +49,11 @@ fun App(
                 navController = navController,
                 startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login
             ) {
+                composable<AppRoute.Register> {
+                    RegisterScreen(navController = navController)
+                }
                 composable<AppRoute.Login> {
-                    LoginScreen()
+                    LoginScreen(navController = navController)
                 }
 
                 composable<AppRoute.DashboardGraph> {
@@ -70,5 +74,6 @@ fun App(
                 }
             }
         }
+
     }
 }

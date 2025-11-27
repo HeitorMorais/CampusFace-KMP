@@ -18,3 +18,6 @@ We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public S
 If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
 
 You can open the web application by running the `:composeApp:wasmJsBrowserDevelopmentRun` Gradle task.
+
+
+setup do android, criar local.properties na raiz projeto: `sdk.dir=C\:\\Users\\Samsung\\AppData\\Local\\Android\\Sdk`, mudar diretório conforme onde seu sdk está localizado

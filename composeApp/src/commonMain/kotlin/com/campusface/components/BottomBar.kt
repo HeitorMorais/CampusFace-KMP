@@ -1,74 +1,134 @@
 // commonMain/kotlin/com/campusface/components/BottomBar.kt
 package com.campusface.components
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.campusface.navigation.DashboardRoute // Assumindo o import das suas rotas
+import com.campusface.navigation.DashboardRouteNames
 
-// 🚨 Reutiliza ou define os nomes de rota constantes para evitar a reflexão:
-private object RouteNames {
-    const val MEMBRO = "com.campusface.navigation.DashboardRoute.Membro"
-    const val ADMINISTRAR = "com.campusface.navigation.DashboardRoute.Administrar"
-    const val MEU_PERFIL = "com.campusface.navigation.DashboardRoute.MeuPerfil"
-
-    const val VALIDAR = "com.campusface.navigation.DashboardRoute.Validar"
-    // Adicione outras rotas da BottomBar se necessário
-
-    const val SAIR =  "com.campusface.navigation.DashboardRoute.Sair"
-}
-
-// 1. Definição Estruturada dos Itens da Barra (Simplificada)
-// Agora usamos a string constante (para seleção) e o objeto (para navegação)
-private val bottomNavItems = listOf(
-    Triple("Membro", DashboardRoute.Membro, RouteNames.MEMBRO),
-    Triple("Admin", DashboardRoute.Administrar, RouteNames.ADMINISTRAR),
-    Triple("Validar", DashboardRoute.Administrar, RouteNames.VALIDAR),
-    Triple("Perfil", DashboardRoute.MeuPerfil, RouteNames.MEU_PERFIL),
-    Triple("Sair", DashboardRoute.MeuPerfil, RouteNames.SAIR)
+private val railItems = listOf(
+    RailItem(
+        label = "Membro",
+        route = DashboardRouteNames.MEMBRO,
+        icon = Icons.Filled.Home, // Exemplo
+        destination = DashboardRoute.Membro
+    ),
+    RailItem(
+        label = "Admin",
+        route = DashboardRouteNames.ADMINISTRAR,
+        icon = Icons.Filled.Settings, // Exemplo
+        destination = DashboardRoute.Administrar
+    ),
+    RailItem(
+        label = "Validar",
+        route = DashboardRouteNames.VALIDAR,
+        icon = Icons.Filled.Check, // Exemplo
+        destination = DashboardRoute.Validar
+    ),
+    RailItem(
+        label = "Perfil",
+        route = DashboardRouteNames.MEU_PERFIL,
+        icon = Icons.Filled.Person, // Exemplo
+        destination = DashboardRoute.MeuPerfil
+    ),
+//    RailItem(
+//        label = "Sair",
+//        route = DashboardRouteNames.SAIR,
+//        icon = Icons.Filled.ExitToApp, // Exemplo
+//        destination = DashboardRoute.Sair
+//    ),
 )
+
 
 @Composable
 fun BottomBar(
     navController: NavHostController
 ) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestinationRoute = navBackStackEntry?.destination?.route
+    val cores = NavigationBarItemDefaults.colors(
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        selectedTextColor = MaterialTheme.colorScheme.background,   // Muda o texto selecionado
+        indicatorColor = MaterialTheme.colorScheme.primary, // Muda o fundo/indicador selecionado
+
+        unselectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone não-selecionado
+        unselectedTextColor = MaterialTheme.colorScheme.primary,   // Muda o texto não-selecionado
+    )
+    val backStackEntry by navController.currentBackStackEntryAsState()
+
+    val currentRouteName = backStackEntry?.destination?.route
 
     NavigationBar(
+        modifier = Modifier.padding(5.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
         // Agora iteramos sobre Rótulo, Objeto de Rota e Nome Constante
-        bottomNavItems.forEach { (label, routeObject, routeNameConstant) ->
+        railItems.forEach { item ->
 
             // 2. Lógica de Seleção: Compara a rota atual com a String Constante.
-            val isSelected = currentDestinationRoute == routeNameConstant
+            val isSelected = currentRouteName == item.route
 
             NavigationBarItem(
+                colors = cores,
+                modifier = Modifier.padding(10.dp),
                 selected = isSelected,
                 onClick = {
+
                     if (!isSelected) {
-                        // 3. Navegação Type-Safe com o objeto
-                        navController.navigate(routeObject) {
-                            navController.graph.startDestinationRoute?.let { startDestinationRoute ->
-                                popUpTo(startDestinationRoute) {
-                                    saveState = true
-                                }
+                        navController.navigate(item.destination) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
                             }
                             launchSingleTop = true
                             restoreState = true
                         }
                     }
                 },
-                icon = { /* Item vazio */ },
-                label = { Text(label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                icon = {
+                    Icon(
+                        item.icon,
+                        contentDescription = item.label
+                    )
+                },
+                label = { Text(item.label, color=MaterialTheme.colorScheme.primary, fontSize = 14.sp) },
             )
         }
+        val isSelectedSair = currentRouteName == DashboardRouteNames.SAIR
+        NavigationBarItem(
+            colors = cores,
+            modifier = Modifier.weight(1f),
+            selected = isSelectedSair,
+            onClick = {
+
+                if (!isSelectedSair) {
+                    navController.navigate(DashboardRoute.Sair) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
+            icon = {
+                Icon(
+                    Icons.Filled.ExitToApp,
+                    contentDescription = "Sair"
+                )
+            },
+            label = { Text("Sair", fontSize =14.sp) },
+        )
     }
 }
