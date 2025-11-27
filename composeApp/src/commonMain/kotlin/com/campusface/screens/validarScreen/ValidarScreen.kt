@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.campusface.components.AdaptiveScreenContainer
-import com.campusface.navigation.DashboardRoute // Importa suas rotas de dashboard
+import com.campusface.navigation.DashboardRoute
 
 
 @Composable

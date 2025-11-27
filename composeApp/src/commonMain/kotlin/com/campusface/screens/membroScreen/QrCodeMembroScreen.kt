@@ -49,7 +49,7 @@ fun QrCodeMembroScreen(navController : NavHostController) {
             Image(
                 painter = painter,
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().widthIn(400.dp)
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(8.dp))
