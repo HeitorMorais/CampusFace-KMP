@@ -72,11 +72,7 @@ fun QrCodeValidadorScreen(navController : NavHostController) {
                 horizontalArrangement = Arrangement.Center
             ){
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar para lista", modifier = Modifier
-                        .background(
-                            color = Color.White, // 🔑
-                            shape = RoundedCornerShape(8.dp)
-                        ))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar para lista")
                 }
                 Spacer(Modifier.width(8.dp))
                 if(isCameraSupported()) {
@@ -121,7 +117,7 @@ fun TextoSucesso(texto: String, duracaoMillis: Long = 2000L, navController: NavH
         visible = isVisible,
         exit = fadeOut()
     ) {
-        Text(text = texto, style = MaterialTheme.typography.labelMedium,color = Color.Green,
+        Text(text = texto, style = MaterialTheme.typography.titleMedium,color = Color(0xFF00A12B),
             modifier = Modifier
                 .background(
                     color = Color.White, // 🔑
