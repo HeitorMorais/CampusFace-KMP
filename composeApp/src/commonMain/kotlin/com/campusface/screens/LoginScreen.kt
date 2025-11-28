@@ -19,11 +19,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import campusface.composeapp.generated.resources.Res
 import campusface.composeapp.generated.resources.logo
-import com.campusface.auth.AuthRepository
-import com.campusface.auth.LocalAuthRepository
+import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.AppRoute
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 
@@ -32,7 +30,7 @@ fun LoginScreen(navController : NavHostController) {
     AdaptiveScreenContainer(){
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
-    var username by remember { mutableStateOf("usuario_teste") }
+    var username by remember { mutableStateOf("teste") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -141,7 +139,7 @@ fun LoginScreen(navController : NavHostController) {
 
             //entrar
             Button(
-                onClick = { authRepository.login(username)},
+                onClick = { authRepository.login(email, password)},
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -182,6 +180,9 @@ fun LoginScreen(navController : NavHostController) {
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF6B7280)
                 )
+                authState.user?.let { user ->
+                    Text("Logado como: ${user.email}")
+                }
             }
         }
     }

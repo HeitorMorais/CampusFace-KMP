@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import campusface.composeapp.generated.resources.Res
 import campusface.composeapp.generated.resources.logo
+import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.navigation.AppRoute
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -41,6 +42,13 @@ private fun inputColors() = OutlinedTextFieldDefaults.colors(
 
 @Composable
 fun RegisterScreen(navController : NavHostController) {
+    val authRepo = LocalAuthRepository.current
+    val authState by authRepo.authState.collectAsState()
+    LaunchedEffect(authState.user) {
+        if (authState.user != null && authState.error == null) {
+            navController.navigate("login")
+        }
+    }
 
     val scroll = rememberScrollState()
 
@@ -48,8 +56,8 @@ fun RegisterScreen(navController : NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var document by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var imageBytes by remember { mutableStateOf(ByteArray(0)) }
 
     Box(
         modifier = Modifier
@@ -132,8 +140,7 @@ fun RegisterScreen(navController : NavHostController) {
                 OutlinedTextField(
                     value = document,
                     onValueChange = { document = it },
-                    placeholder = { Text("CPF", color = Color(0xFFBDBDBD)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    placeholder = { Text("Função", color = Color(0xFFBDBDBD)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
@@ -193,7 +200,14 @@ fun RegisterScreen(navController : NavHostController) {
                 Button(
                     onClick = {
                         if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || document.isEmpty()) return@Button
-
+                        authRepo.register(
+                            fullName,
+                            email,
+                            password,
+                            document,
+                            imageBytes
+                        )
+                        println(authState.error)
                     },
                     modifier = Modifier
                         .fillMaxWidth()

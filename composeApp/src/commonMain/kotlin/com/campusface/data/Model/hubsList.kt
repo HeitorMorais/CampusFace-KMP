@@ -1,4 +1,4 @@
-package com.campusface.data
+package com.campusface.data.Model
 
 val hubsList = listOf(
     Hub(1, "Fatec Zona Leste", "ativo", quantidadeMembros = 15),

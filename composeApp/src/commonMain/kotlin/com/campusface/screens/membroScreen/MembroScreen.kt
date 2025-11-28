@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
@@ -26,12 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.DashboardRoute // Importa suas rotas de dashboard
-import com.campusface.data.Hub // Importa o modelo Hub
-import com.campusface.data.hubsList
+import com.campusface.data.Model.Hub // Importa o modelo Hub
+import com.campusface.data.Model.hubsList
 
 @Composable
 fun StatusCircle(tamanho: Dp = 12.dp, color: Color) {

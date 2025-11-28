@@ -1,7 +1,6 @@
 package com.campusface.screens.administrarScreen
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
@@ -21,9 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -31,11 +27,11 @@ import coil3.compose.AsyncImage
 import com.campusface.components.AdaptiveScreenContainer
 
 // Supondo que você tenha estas mocks e data classes (elas devem estar em commonMain)
-import com.campusface.data.Hub
-import com.campusface.data.hubsList
-import com.campusface.data.membros
-import com.campusface.data.mockSolicitacoesEntrada
-import com.campusface.data.mockSolicitacoesAtualizacao
+import com.campusface.data.Model.Hub
+import com.campusface.data.Model.hubsList
+import com.campusface.data.Model.membros
+import com.campusface.data.Model.mockSolicitacoesEntrada
+import com.campusface.data.Model.mockSolicitacoesAtualizacao
 
 @Composable
 fun DetalhesHubScreen(
@@ -194,8 +190,8 @@ fun PhotoCircle(tamanho: Dp = 70.dp, url : String) {
         modifier = Modifier.size(tamanho).padding(4.dp).clip(CircleShape),
         model = url,
         contentDescription = null,
-        placeholder = ColorPainter(Color.Yellow),
-        fallback = ColorPainter(Color.Yellow),
+        placeholder = ColorPainter(Color.LightGray),
+        fallback = ColorPainter(Color.LightGray),
         contentScale = ContentScale.Crop
     )
 //    Box(

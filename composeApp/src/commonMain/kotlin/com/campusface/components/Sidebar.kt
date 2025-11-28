@@ -16,9 +16,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.campusface.data.Repository.LocalAuthRepository
 
 data class RailItem(
     val label: String,
@@ -65,6 +68,8 @@ private val railItems = listOf(
 fun Sidebar(
     navController: NavHostController
 ) {
+    val authRepository = LocalAuthRepository.current
+    val authState by authRepository.authState.collectAsState()
     val cores = NavigationRailItemDefaults.colors(
         selectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone selecionado
         selectedTextColor = MaterialTheme.colorScheme.background,   // Muda o texto selecionado
@@ -118,16 +123,7 @@ fun Sidebar(
             modifier = Modifier.weight(1f),
             selected = isSelectedSair,
             onClick = {
-
-                if (!isSelectedSair) {
-                    navController.navigate(DashboardRoute.Sair) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
+                authRepository.logout()
             },
             icon = {
                 Icon(

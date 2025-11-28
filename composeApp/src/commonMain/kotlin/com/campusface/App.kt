@@ -7,8 +7,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.campusface.auth.AuthRepository
-import com.campusface.auth.LocalAuthRepository
+import com.campusface.data.Repository.AuthRepository
+import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.navigation.AppRoute
 import com.campusface.screens.DashboardLayout
 import com.campusface.screens.LoginScreen

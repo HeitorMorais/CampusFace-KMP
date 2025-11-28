@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,13 +27,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.campusface.components.AdaptiveScreenContainer
+import com.campusface.data.Repository.EntryRequestRepository
+import com.campusface.data.Repository.LocalAuthRepository
 
 
 @Composable
 fun AdicionarMembroScreen(
     navController: NavHostController
 ) {
-    var nome by remember { mutableStateOf("") }
+    val authRepository = LocalAuthRepository.current
+    val authState by authRepository.authState.collectAsState()
+    val repo = EntryRequestRepository()
+    var hubCode by remember { mutableStateOf("") }
     AdaptiveScreenContainer(){
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -82,8 +88,8 @@ fun AdicionarMembroScreen(
             )
 
             TextField(
-                value = nome,
-                onValueChange = { nome = it },
+                value = hubCode,
+                onValueChange = { hubCode = it },
                 label = { Text("Ex: 123ABC") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -92,12 +98,20 @@ fun AdicionarMembroScreen(
 
             Button(
                 onClick = {
-                    // 🎯 AÇÃO: No sucesso, volta para a tela anterior
-                    // Aqui você chamaria a ViewModel para a lógica de "Solicitar Entrada"
-                    // Por enquanto, apenas simula o retorno
                     navController.popBackStack()
+                    repo.entryRequestCreate(
+                        hubCode = hubCode,
+                        role = authState.role,
+                        token = authState.token,
+                        onSuccess = {
+                            println("CRIADO COM SUCESSO: ${it.id}")
+                        },
+                        onError = {
+                            println("ERRO: $it")
+                        }
+                    )
                 },
-                enabled = nome.isNotBlank(),
+                enabled = hubCode.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Solicitar entrada")

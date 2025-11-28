@@ -1,4 +1,4 @@
-package com.campusface.data
+package com.campusface.data.Model
 
 // Módulo: shared/src/commonMain/kotlin/data/Usuario.kt
 

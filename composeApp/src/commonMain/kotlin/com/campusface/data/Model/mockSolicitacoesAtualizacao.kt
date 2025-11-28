@@ -1,4 +1,4 @@
-package com.campusface.data
+package com.campusface.data.Model
 
 val mockSolicitacoesAtualizacao = listOf(
     SolicitacaoAtualizacao(

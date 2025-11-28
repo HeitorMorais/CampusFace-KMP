@@ -66,6 +66,12 @@ kotlin {
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.1")
             implementation("network.chaintech:qr-kit:3.1.3")
             implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+            implementation("io.coil-kt.coil3:coil-network-ktor3:3.3.0")
+            implementation("io.ktor:ktor-client-core:3.3.2")
+            implementation("io.ktor:ktor-client-cio:3.3.2")
+            implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -73,14 +79,18 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
-            implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+            implementation("io.ktor:ktor-client-java:3.3.2")
         }
         wasmJsMain.dependencies{
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
         }
         androidMain.dependencies{
             implementation("androidx.activity:activity-compose:1.8.2")
-            implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+            implementation("io.ktor:ktor-client-android:3.3.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+        }
+        iosMain.dependencies{
+            implementation("io.ktor:ktor-client-darwin:3.3.2")
         }
     }
 }
