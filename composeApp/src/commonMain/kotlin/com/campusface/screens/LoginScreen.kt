@@ -30,6 +30,7 @@ fun LoginScreen(navController : NavHostController) {
     AdaptiveScreenContainer(){
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
+
     var username by remember { mutableStateOf("teste") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

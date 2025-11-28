@@ -1,191 +1,194 @@
-package com.campusface.data.Repository
+    package com.campusface.data.Repository
 
-import androidx.compose.runtime.staticCompositionLocalOf
-import com.campusface.data.BASE_URL
-import com.campusface.data.Model.User
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+    import androidx.compose.runtime.staticCompositionLocalOf
+    import com.campusface.data.BASE_URL
+    import com.campusface.data.Model.User
+    import kotlinx.coroutines.flow.MutableStateFlow
+    import kotlinx.coroutines.flow.StateFlow
+    import kotlinx.coroutines.flow.asStateFlow
+    import kotlinx.coroutines.CoroutineScope
+    import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.launch
 
-// Ktor imports
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.forms.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.Serializable
+    // Ktor imports
+    import io.ktor.client.*
+    import io.ktor.client.call.*
+    import io.ktor.client.request.*
+    import io.ktor.client.engine.cio.*
+    import io.ktor.client.plugins.contentnegotiation.*
+    import io.ktor.client.request.forms.*
+    import io.ktor.http.*
+    import io.ktor.serialization.kotlinx.json.*
+    import kotlinx.serialization.Serializable
 
-// ==============================
-// MODELOS
-// ==============================
+    // ==============================
+    // MODELOS
+    // ==============================
 
-// Envelope da API
-@Serializable
-data class ApiResponse<T>(
-    val success: Boolean,
-    val message: String,
-    val data: T? = null
-)
+    // Envelope da API
+    @Serializable
+    data class ApiResponse<T>(
+        val success: Boolean,
+        val message: String,
+        val data: T? = null
+    )
 
-// Conteúdo do login
-@Serializable
-data class LoginData(
-    val user: User,
-    val token: String
-)
+    // Conteúdo do login
+    @Serializable
+    data class LoginData(
+        val user: User,
+        val token: String
+    )
 
-data class AuthState(
-    val isAuthenticated: Boolean = false,
-    val user: User? = null,
-    val token: String? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val role: String? = null
-)
+    data class AuthState(
+        val isAuthenticated: Boolean = false,
+        val user: User? = null,
+        val token: String? = null,
+        val isLoading: Boolean = false,
+        val error: String? = null,
+        val role: String? = null
+    )
 
-// ==============================
-// REPOSITÓRIO
-// ==============================
+    // ==============================
+    // REPOSITÓRIO
+    // ==============================
 
-class AuthRepository {
+    class AuthRepository {
 
-    private val client = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            json(kotlinx.serialization.json.Json {
-                ignoreUnknownKeys = true
-                prettyPrint = true
-                isLenient = true
-            })
-        }
-    }
-
-    private val scope = CoroutineScope(Dispatchers.Main)
-
-    private val _authState = MutableStateFlow(AuthState())
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
-
-    // LOGIN ====================================================
-    fun login(email: String, password: String) {
-        scope.launch {
-            try {
-                _authState.value = _authState.value.copy(
-                    isLoading = true,
-                    error = null
-                )
-
-                val response: ApiResponse<LoginData> = client.post(BASE_URL + "/auth/login") {
-                    header("ngrok-skip-browser-warning", "true")
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        mapOf(
-                            "email" to email,
-                            "password" to password
-                        )
-                    )
-                }.body()
-
-                if (response.success && response.data != null) {
-                    _authState.value = AuthState(
-                        isAuthenticated = true,
-                        user = response.data.user,
-                        token = response.data.token,
-                        isLoading = false,
-                        error = null,
-                        role = response.data.user.document
-                    )
-                } else {
-                    throw Exception(response.message)
-                }
-
-            } catch (e: Exception) {
-                _authState.value = AuthState(
-                    isAuthenticated = false,
-                    user = null,
-                    token = null,
-                    isLoading = false,
-                    error = "Falha no login: ${e.message}",
-                )
+        private val client = HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(kotlinx.serialization.json.Json {
+                    ignoreUnknownKeys = true
+                    prettyPrint = true
+                    isLenient = true
+                })
+            }
+            install(io.ktor.client.plugins.logging.Logging) {
+                level = io.ktor.client.plugins.logging.LogLevel.ALL
             }
         }
-    }
 
-    // REGISTER ====================================================
-    fun register(
-        fullName: String,
-        email: String,
-        password: String,
-        document: String,
-        imageBytes: ByteArray
-    ) {
-        scope.launch {
-            try {
-                _authState.value = _authState.value.copy(
-                    isLoading = true,
-                    error = null
-                )
+        private val scope = CoroutineScope(Dispatchers.Main)
 
-                val url =
-                    "$BASE_URL/auth/register?fullName=$fullName&email=$email&hashedPassword=$password&document=$document"
+        private val _authState = MutableStateFlow(AuthState())
+        val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-                val response: ApiResponse<User> = client.submitFormWithBinaryData(
-                    url = url,
-                    formData = formData {
-                        append(
-                            "image",
-                            imageBytes,
-                            Headers.build {
-                                append(HttpHeaders.ContentType, "application/octet-stream")
-                                append(
-                                    HttpHeaders.ContentDisposition,
-                                    "form-data; name=\"image\"; filename=\"image.jpg\""
-                                )
-                            }
-                        )
-                    }
-                ) {
-                    header("ngrok-skip-browser-warning", "true")
-                }.body()
-
-                if (response.success && response.data != null) {
-                    _authState.value = AuthState(
-                        isAuthenticated = false,
-                        user = response.data,
-                        token = null,
-                        isLoading = false,
+        // LOGIN ====================================================
+        fun login(email: String, password: String) {
+            scope.launch {
+                try {
+                    _authState.value = _authState.value.copy(
+                        isLoading = true,
                         error = null
                     )
-                } else {
-                    throw Exception(response.message)
+
+                    val response: ApiResponse<LoginData> = client.post(BASE_URL + "/auth/login") {
+                        header("ngrok-skip-browser-warning", "true")
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            mapOf(
+                                "email" to email,
+                                "password" to password
+                            )
+                        )
+                    }.body()
+
+                    if (response.success && response.data != null) {
+                        _authState.value = AuthState(
+                            isAuthenticated = true,
+                            user = response.data.user,
+                            token = response.data.token,
+                            isLoading = false,
+                            error = null,
+                            role = response.data.user.document
+                        )
+                    } else {
+                        throw Exception(response.message)
+                    }
+
+                } catch (e: Exception) {
+                    _authState.value = AuthState(
+                        isAuthenticated = false,
+                        user = null,
+                        token = null,
+                        isLoading = false,
+                        error = "Falha no login: ${e.message}",
+                    )
                 }
-
-            } catch (e: Exception) {
-                println("REGISTER ERROR: ${e.message}")
-                e.printStackTrace()
-
-                _authState.value = AuthState(
-                    isAuthenticated = false,
-                    user = null,
-                    token = null,
-                    isLoading = false,
-                    error = "Falha ao registrar: ${e.message}"
-                )
             }
+        }
+
+        // REGISTER ====================================================
+        // REGISTER ====================================================
+        fun register(
+            fullName: String,
+            email: String,
+            password: String,
+            document: String,
+            imageBytes: ByteArray
+        ) {
+            scope.launch {
+                try {
+                    _authState.value = _authState.value.copy(
+                        isLoading = true,
+                        error = null
+                    )
+
+                    val response: ApiResponse<User> = client.submitFormWithBinaryData(
+                        url = "$BASE_URL/auth/register",
+                        formData = formData {
+                            // Campos de Texto (Ktor gerencia as aspas do name="..." automaticamente aqui)
+                            append("fullName", fullName)
+                            append("email", email)
+                            append("hashedPassword", password)
+                            append("document", document)
+
+
+                            append("image", imageBytes, Headers.build {
+                                append(HttpHeaders.ContentType, "image/jpeg")
+                                append(HttpHeaders.ContentDisposition, "filename=\"face.jpg\"")
+                            })
+
+                        }
+
+                    ) {
+                        header("ngrok-skip-browser-warning", "true")   // ✅ AQUI SIM!
+                    }.body()
+
+
+                    if (response.success && response.data != null) {
+                        _authState.value = AuthState(
+                            isAuthenticated = false,
+                            user = response.data,
+                            token = null,
+                            isLoading = false,
+                            error = null
+                        )
+                    } else {
+                        throw Exception(response.message)
+                    }
+
+                } catch (e: Exception) {
+                    _authState.value = AuthState(
+                        isAuthenticated = false,
+                        user = null,
+                        token = null,
+                        isLoading = false,
+                        error = "Falha ao registrar: ${e.message}"
+                    )
+                }
+            }
+        }
+
+
+
+
+
+        fun logout() {
+            _authState.value = AuthState()
         }
     }
 
-
-
-    fun logout() {
-        _authState.value = AuthState()
+    val LocalAuthRepository = staticCompositionLocalOf<AuthRepository> {
+        error("AuthRepository não foi fornecido")
     }
-}
-
-val LocalAuthRepository = staticCompositionLocalOf<AuthRepository> {
-    error("AuthRepository não foi fornecido")
-}

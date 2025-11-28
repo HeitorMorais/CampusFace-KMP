@@ -70,8 +70,16 @@ kotlin {
             implementation("io.ktor:ktor-client-core:3.3.2")
             implementation("io.ktor:ktor-client-cio:3.3.2")
             implementation("io.ktor:ktor-client-content-negotiation:3.3.2")
+            implementation("io.ktor:ktor-client-logging:3.3.2")
+
             implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.2")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+
+            implementation("io.github.vinceglb:filekit-core:0.12.0")
+            implementation("io.github.vinceglb:filekit-dialogs:0.12.0")
+            implementation("io.github.vinceglb:filekit-dialogs-compose:0.12.0")
+            implementation("io.github.vinceglb:filekit-coil:0.12.0")
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -83,6 +91,7 @@ kotlin {
         }
         wasmJsMain.dependencies{
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
+
         }
         androidMain.dependencies{
             implementation("androidx.activity:activity-compose:1.8.2")

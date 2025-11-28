@@ -7,6 +7,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
 import com.campusface.data.Repository.AuthRepository
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.navigation.AppRoute
@@ -14,6 +16,7 @@ import com.campusface.screens.DashboardLayout
 import com.campusface.screens.LoginScreen
 import com.campusface.screens.RegisterScreen
 import com.campusface.theme.CampusFaceTheme
+import io.github.vinceglb.filekit.coil.addPlatformFileSupport
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -21,6 +24,14 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun App(
     onNavHostReady: suspend (NavHostController) -> Unit = {}
 ) {
+    //setup do filekit + coil
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader.Builder(context)
+            .components {
+                addPlatformFileSupport()
+            }
+            .build()
+    }
     CampusFaceTheme {
     val authRepository = remember { AuthRepository() }
 

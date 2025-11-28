@@ -24,11 +24,18 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import campusface.composeapp.generated.resources.Res
 import campusface.composeapp.generated.resources.logo
+import coil3.compose.AsyncImage
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.navigation.AppRoute
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-
 
 @Composable
 private fun inputColors() = OutlinedTextFieldDefaults.colors(
@@ -38,17 +45,10 @@ private fun inputColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = Color.Black,
     focusedTextColor = Color.Black
 )
-
-
 @Composable
-fun RegisterScreen(navController : NavHostController) {
+fun RegisterScreen(navController: NavHostController) {
     val authRepo = LocalAuthRepository.current
     val authState by authRepo.authState.collectAsState()
-    LaunchedEffect(authState.user) {
-        if (authState.user != null && authState.error == null) {
-            navController.navigate("login")
-        }
-    }
 
     val scroll = rememberScrollState()
 
@@ -56,8 +56,21 @@ fun RegisterScreen(navController : NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var document by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
     var imageBytes by remember { mutableStateOf(ByteArray(0)) }
+    var selectedFile by remember { mutableStateOf<PlatformFile?>(null) }
+    val launcher = rememberFilePickerLauncher(
+        type = FileKitType.Image,
+        title = "Selecione uma Imagem"
+    ) { file: PlatformFile? ->
+        // 3. Este bloco é executado quando o usuário seleciona ou cancela
+        selectedFile = file
+    }
+    // 🔥 Corrigido: reage ao estado REAL de sucesso
+    LaunchedEffect(authState) {
+        if (authState.user != null && authState.error == null && !authState.isLoading) {
+            navController.navigate(AppRoute.Login)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -104,17 +117,28 @@ fun RegisterScreen(navController : NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                // 📸 Placeholder da foto (versão grande)
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF3F4F6))
-                        .border(2.dp, Color(0xFFE5E7EB), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("📷", fontSize = 26.sp)
+
+                    Button(onClick = {
+                        launcher.launch()
+                    }) {
+                        Text("📷", fontSize = 26.sp)
+                    }
+                val scope = rememberCoroutineScope()
+
+                selectedFile?.let { file ->
+
+                    // Carrega os bytes quando o arquivo mudar
+                    LaunchedEffect(file) {
+                        imageBytes = file.readBytes()
+                    }
+
+                    AsyncImage(
+                        model = file,
+                        contentDescription = "Imagem selecionada",
+                        modifier = Modifier.size(200.dp)
+                    )
                 }
+
 
                 Spacer(Modifier.height(10.dp))
                 Text("Foto de perfil", color = Color.Gray, fontSize = 14.sp)
@@ -183,7 +207,7 @@ fun RegisterScreen(navController : NavHostController) {
 
                 Spacer(Modifier.height(24.dp))
 
-                // 👉 Tipo de acesso
+                // 👉 Título
                 Text(
                     "Tipo de acesso",
                     fontSize = 16.sp,
@@ -194,12 +218,13 @@ fun RegisterScreen(navController : NavHostController) {
 
                 Spacer(Modifier.height(12.dp))
 
-
-
                 // 👉 Botão Criar conta
                 Button(
                     onClick = {
-                        if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || document.isEmpty()) return@Button
+                        if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || document.isEmpty()) {
+                            return@Button
+                        }
+
                         authRepo.register(
                             fullName,
                             email,
@@ -207,17 +232,16 @@ fun RegisterScreen(navController : NavHostController) {
                             document,
                             imageBytes
                         )
-                        println(authState.error)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     shape = RoundedCornerShape(14.dp),
-                    enabled = !isLoading,
+                    enabled = !authState.isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                 ) {
                     Text(
-                        if (isLoading) "Criando..." else "Criar conta",
+                        if (authState.isLoading) "Criando..." else "Criar conta",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -226,7 +250,7 @@ fun RegisterScreen(navController : NavHostController) {
                 Spacer(Modifier.height(20.dp))
 
                 TextButton(
-                    onClick = { navController.navigate(AppRoute.Login)}
+                    onClick = { navController.navigate(AppRoute.Login) }
                 ) {
                     Text(
                         "Já tenho uma conta",
