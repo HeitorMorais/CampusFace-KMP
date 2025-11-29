@@ -1,4 +1,4 @@
-package com.campusface.screens.membroScreen
+package com.campusface.screens.validarScreen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,7 +46,7 @@ fun ValidarScreen(navController: NavHostController) {
                 }
             }
 
-            HubListCard(navController = navController, isValidator = true)
+
         }
     }
 }

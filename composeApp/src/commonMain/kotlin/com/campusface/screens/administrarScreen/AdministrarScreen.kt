@@ -93,7 +93,7 @@ fun AdministrarScreen(navController: NavHostController) {
 
             Button(
                 onClick = {
-                   // navController.navigate(DashboardRoute.CriarHub)
+                   navController.navigate(DashboardRoute.CriarHub)
                 },
             ) {
                 Text("Criar", style=MaterialTheme.typography.labelMedium)

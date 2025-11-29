@@ -105,6 +105,7 @@ fun AdicionarMembroScreen(
                         token = authState.token,
                         onSuccess = {
                             println("CRIADO COM SUCESSO: ${it.id}")
+                            println("role: ${it.role}")
                         },
                         onError = {
                             println("ERRO: $it")

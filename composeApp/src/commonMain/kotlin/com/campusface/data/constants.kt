@@ -1,3 +1,3 @@
 package com.campusface.data
 
-const val BASE_URL = "https://941bbd96076d.ngrok-free.app"
+const val BASE_URL = "https://8fe394eeee82.ngrok-free.app"

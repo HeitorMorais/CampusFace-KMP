@@ -20,7 +20,7 @@ import com.campusface.screens.membroScreen.AdicionarMembroScreen
 import com.campusface.screens.administrarScreen.AdministrarScreen
 import com.campusface.screens.administrarScreen.DetalhesHubScreen
 import com.campusface.screens.membroScreen.QrCodeMembroScreen
-import com.campusface.screens.membroScreen.ValidarScreen
+import com.campusface.screens.validarScreen.ValidarScreen
 import com.campusface.screens.validarScreen.QrCodeValidadorScreen
 
 @Composable
@@ -85,6 +85,10 @@ fun DashboardContentNavHost(
 
         composable<DashboardRoute.Administrar> {
             AdministrarScreen(navController = navController)
+        }
+
+        composable<DashboardRoute.CriarHub> {
+            CriarHubScreen(navController = navController)
         }
 
         composable<DashboardRoute.Validar> {

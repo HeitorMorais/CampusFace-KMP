@@ -27,7 +27,7 @@ sealed interface DashboardRoute {
     data object Administrar : DashboardRoute
 
     @Serializable
-    data object AdicionarHub : DashboardRoute
+    data object CriarHub : DashboardRoute
 
     @Serializable
     @SerialName("validar")

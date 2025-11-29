@@ -79,6 +79,7 @@ kotlin {
             implementation("io.github.vinceglb:filekit-dialogs:0.12.0")
             implementation("io.github.vinceglb:filekit-dialogs-compose:0.12.0")
             implementation("io.github.vinceglb:filekit-coil:0.12.0")
+            implementation(libs.kotlinx.datetime)
 
         }
         commonTest.dependencies {
