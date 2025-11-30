@@ -19,6 +19,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 // --- NOVO: Modelo de resposta para quando a API retorna uma LISTA ---
+
+@Serializable
+data class OrganizationUpdateBody(
+    val name: String,
+    val description: String
+)
 @Serializable
 data class OrganizationListResponse(
     val success: Boolean,
@@ -136,4 +142,69 @@ class OrganizationRepository {
             }
         }
     }
+
+    fun updateOrganization(
+        id: String,
+        name: String,
+        description: String,
+        token: String,
+        onSuccess: (Organization) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.put(BASE_URL + "/organizations/$id") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                    setBody(OrganizationUpdateBody(name, description))
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    onError("Erro ${httpResponse.status.value}")
+                    return@launch
+                }
+
+                val response = httpResponse.body<OrganizationResponse>() // Reusa a response padrão
+                if (response.success && response.data != null) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+            } catch (e: Exception) {
+                onError("Erro: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteOrganization(
+        id: String,
+        token: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.delete(BASE_URL + "/organizations/$id") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    onError("Erro ${httpResponse.status.value}")
+                    return@launch
+                }
+
+                // Assumindo que delete retorna 200 OK com json padrão ou vazio
+                onSuccess()
+            } catch (e: Exception) {
+                onError("Erro: ${e.message}")
+            }
+        }
+    }
+
 }

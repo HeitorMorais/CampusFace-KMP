@@ -17,11 +17,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch // Importante para o viewModelScope
 import org.jetbrains.compose.resources.painterResource
 
 // Imports do seu projeto
@@ -30,6 +32,7 @@ import com.campusface.components.AdaptiveScreenContainer
 import campusface.composeapp.generated.resources.Res
 import campusface.composeapp.generated.resources.back_icon
 import com.campusface.data.Repository.LocalAuthRepository
+import com.campusface.utils.AppEventBus // IMPORTANTE: Importar o Event Bus
 
 // ==========================================
 // 1. VIEW MODEL & STATE
@@ -71,6 +74,11 @@ class CreateHubViewModel(
             hubCode = codigoHub,
             token = token,
             onSuccess = {
+                // AQUI ESTÁ A MUDANÇA: Emite o evento global
+                viewModelScope.launch {
+                    AppEventBus.emitRefresh()
+                }
+
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
             },
             onError = { msg ->
@@ -92,7 +100,6 @@ class CreateHubViewModel(
 fun CriarHubScreen(
     navController: NavHostController,
     onBack: () -> Unit = { navController.popBackStack() },
-    // CORREÇÃO DO ERRO DE FACTORY: Usando o bloco lambda
     viewModel: CreateHubViewModel = viewModel { CreateHubViewModel() }
 ) {
     // 1. Pega o token do repositório local
@@ -127,16 +134,15 @@ fun CriarHubScreen(
     }
 
     AdaptiveScreenContainer {
-        // Scaffold necessário para exibir o Snackbar corretamente sobre o conteúdo
         Scaffold(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-            containerColor = Color.Transparent // Mantém o fundo do seu container
+            containerColor = Color.Transparent
         ) { paddingValues ->
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues) // Padding do Scaffold
+                    .padding(paddingValues)
                     .padding(30.dp),
                 horizontalAlignment = Alignment.Start
             ) {
@@ -189,7 +195,6 @@ fun CriarHubScreen(
                 // --- Botão de Criar ---
                 Button(
                     onClick = {
-                        // Chama o ViewModel (NÃO navega aqui, a navegação é automática no sucesso)
                         viewModel.createHub(nome, descricao, codigoHub, authState.token)
                     },
                     modifier = Modifier

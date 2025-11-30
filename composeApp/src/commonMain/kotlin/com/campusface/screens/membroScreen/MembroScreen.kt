@@ -6,13 +6,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,8 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// --- IMPORTS DOS SEUS MODELS E REPOSITÓRIOS ---
-// Certifique-se que os pacotes correspondem ao seu projeto
+// --- IMPORTS DO SEU PROJETO ---
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.DashboardRoute
 import com.campusface.data.Repository.LocalAuthRepository
@@ -32,6 +32,7 @@ import com.campusface.data.Repository.EntryRequestRepository
 import com.campusface.data.Repository.OrganizationRepository
 import com.campusface.data.Repository.EntryRequest
 import com.campusface.data.Model.Organization
+import com.campusface.utils.AppEventBus // Certifique-se de que este arquivo existe
 
 // ==========================================
 // 1. VIEW MODEL & STATE
@@ -40,7 +41,7 @@ import com.campusface.data.Model.Organization
 data class MembroUiState(
     val isLoading: Boolean = false,
     val activeHubs: List<Organization> = emptyList(), // Hubs que já sou membro (Verdes)
-    val pendingRequests: List<EntryRequest> = emptyList(), // Solicitações pendentes/recusadas (Amarelas/Vermelhas)
+    val pendingRequests: List<EntryRequest> = emptyList(), // Solicitações pendentes/recusadas
     val error: String? = null
 )
 
@@ -53,22 +54,36 @@ class MembroViewModel(
     val uiState = _uiState.asStateFlow()
 
     private var isLoaded = false
+    private var savedToken: String? = null
+
+    init {
+        // Escuta eventos globais para recarregar a lista automaticamente
+        viewModelScope.launch {
+            AppEventBus.refreshFlow.collect {
+                if (!savedToken.isNullOrBlank()) {
+                    fetchAllData(savedToken, forceReload = true)
+                }
+            }
+        }
+    }
 
     fun fetchAllData(token: String?, forceReload: Boolean = false) {
         if (token.isNullOrBlank()) return
+        savedToken = token // Salva o token para o refresh automático
+
         if (isLoaded && !forceReload) return
 
         _uiState.update { it.copy(isLoading = true, error = null) }
 
-        // Estratégia: Busca Hubs Ativos primeiro -> Depois busca Solicitações
+        // 1. Busca Hubs Ativos
         orgRepo.getMyHubs(
             token = token,
             onSuccess = { hubs ->
-                // Sucesso na primeira chamada, agora chama a segunda
+                // 2. Busca Solicitações (independente do sucesso dos hubs, tentamos carregar o resto)
                 fetchRequests(token, hubs)
             },
             onError = { error ->
-                // Falha na primeira, tenta a segunda mesmo assim (resiliência)
+                // Se falhar os hubs, tenta carregar as solicitações mesmo assim
                 fetchRequests(token, emptyList(), error)
             }
         )
@@ -84,7 +99,7 @@ class MembroViewModel(
                         isLoading = false,
                         activeHubs = currentHubs,
                         pendingRequests = requests,
-                        error = previousError // Mantém erro se houve na primeira chamada
+                        error = previousError // Mantém o erro da primeira chamada se houver
                     )
                 }
             },
@@ -136,11 +151,9 @@ fun MembroScreen(
             ) {
                 Text("Meus Hubs", style = MaterialTheme.typography.titleMedium)
 
-                // Em MembroScreen.kt
-
                 Button(
                     onClick = {
-                        // Passa o argumento explicitamente
+                        // Navega para tela de solicitar entrada passando a role "MEMBER"
                         navController.navigate(DashboardRoute.AdicionarMembro(role = "MEMBER"))
                     },
                     modifier = Modifier
@@ -160,7 +173,8 @@ fun MembroScreen(
                     pendingRequests = uiState.pendingRequests,
                     navController = navController,
                     isValidator = false,
-                    error = uiState.error
+                    error = uiState.error,
+                    onRetry = { viewModel.fetchAllData(authState.token, true) }
                 )
             }
         }
@@ -177,19 +191,24 @@ fun UnifiedHubList(
     pendingRequests: List<EntryRequest>,
     navController: NavHostController,
     isValidator: Boolean,
-    error: String?
+    error: String?,
+    onRetry: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
 
-        // Se houver erro parcial, mostra no topo
+        // Se houver erro de rede, mostra aviso no topo com botão de retry
         if (error != null) {
             item {
-                Text(
-                    text = "Aviso: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Erro ao carregar: $error", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    IconButton(onClick = onRetry) {
+                        Icon(Icons.Default.Refresh, "Recarregar")
+                    }
+                }
             }
         }
 
@@ -198,16 +217,16 @@ fun UnifiedHubList(
             items(activeHubs) { org ->
                 UnifiedCard(
                     title = org.name,
+                    subtitle = org.hubCode,
                     status = "Ativo",
-                    statusColor = Color(0xFF00A12B),
+                    statusColor = Color(0xFF00A12B), // Verde
                     isClickable = true,
                     onClick = {
+                        // Se for membro, vai para a tela de QR Code passando o ID
                         if (isValidator) {
                             navController.navigate(DashboardRoute.QrCodeValidador)
                         } else {
-                            navController.navigate(
-                                DashboardRoute.QrCodeMembro(organizationId = org.id)
-                            )
+                            navController.navigate(DashboardRoute.QrCodeMembro(organizationId = org.id))
                         }
                     }
                 )
@@ -215,22 +234,23 @@ fun UnifiedHubList(
         }
 
         // 2. SOLICITAÇÕES (Vindas do EntryRequestRepository)
-        // Filtramos APPROVED para não duplicar, pois APPROVED deve aparecer na lista de cima como ActiveHub
+        // Filtramos APPROVED para não duplicar visualmente (pois já devem estar na lista de ativos acima)
         val visibleRequests = pendingRequests.filter { it.status != "APPROVED" }
 
         if (visibleRequests.isNotEmpty()) {
             items(visibleRequests) { req ->
                 val (color, text) = when(req.status) {
-                    "PENDING" -> Color(0xFFFFBB00) to "Solicitado"
-                    "DENIED" -> Color(0xFFB00020) to "Recusado"
+                    "PENDING" -> Color(0xFFFFBB00) to "Solicitado" // Amarelo
+                    "DENIED" -> Color(0xFFB00020) to "Recusado"    // Vermelho
                     else -> Color.Gray to req.status
                 }
 
                 UnifiedCard(
                     title = req.hubCode, // EntryRequest só tem o código do hub
+                    subtitle = "Aguardando aprovação",
                     status = text,
                     statusColor = color,
-                    isClickable = false, // Pendente não clica
+                    isClickable = false, // Pendente não gera QR Code
                     onClick = {}
                 )
             }
@@ -254,6 +274,7 @@ fun UnifiedHubList(
 @Composable
 fun UnifiedCard(
     title: String,
+    subtitle: String,
     status: String,
     statusColor: Color,
     isClickable: Boolean,
@@ -278,11 +299,20 @@ fun UnifiedCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,

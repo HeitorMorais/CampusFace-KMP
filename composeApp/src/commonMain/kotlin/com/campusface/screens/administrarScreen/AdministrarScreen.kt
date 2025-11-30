@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,11 +18,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 // Imports do seu projeto
 import com.campusface.components.AdaptiveScreenContainer
@@ -27,14 +32,15 @@ import com.campusface.data.Model.Organization
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.data.Repository.OrganizationRepository
 import com.campusface.navigation.DashboardRoute
+import com.campusface.utils.AppEventBus // Certifique-se de importar o Bus
 
 // ==========================================
-// 1. VIEW MODEL & STATE
+// 1. VIEW MODEL
 // ==========================================
 
 data class AdministrarUiState(
     val isLoading: Boolean = false,
-    val adminHubs: List<Organization> = emptyList(), // Lista filtrada (Só onde sou Admin)
+    val adminHubs: List<Organization> = emptyList(),
     val error: String? = null
 )
 
@@ -47,10 +53,30 @@ class AdministrarViewModel(
 
     private var isLoaded = false
 
+    // Variáveis para permitir o refresh automático
+    private var savedToken: String? = null
+    private var savedUserId: String? = null
+
+    init {
+        // OUVINTE DE EVENTOS GLOBAIS
+        // Quando alguém (ex: CriarHubScreen) emitir um refresh, essa tela recarrega.
+        viewModelScope.launch {
+            AppEventBus.refreshFlow.collect {
+                if (!savedToken.isNullOrBlank() && !savedUserId.isNullOrBlank()) {
+                    // Força o reload limpando o flag isLoaded
+                    isLoaded = false
+                    fetchAdminHubs(savedToken, savedUserId)
+                }
+            }
+        }
+    }
+
     fun fetchAdminHubs(token: String?, currentUserId: String?) {
         if (token.isNullOrBlank() || currentUserId.isNullOrBlank()) return
 
-        // Evita recarregar se já tiver dados (opcional, para economizar rede)
+        savedToken = token
+        savedUserId = currentUserId
+
         if (isLoaded) return
 
         _uiState.update { it.copy(isLoading = true, error = null) }
@@ -59,21 +85,48 @@ class AdministrarViewModel(
             token = token,
             onSuccess = { allHubs ->
                 isLoaded = true
-
-                // LÓGICA DE FILTRAGEM:
-                // O endpoint retorna tudo. Aqui filtramos apenas onde meu ID está na lista de 'admins'.
                 val onlyAdminHubs = allHubs.filter { org ->
                     org.admins.any { user -> user.id == currentUserId }
                 }
-
-                _uiState.update {
-                    it.copy(isLoading = false, adminHubs = onlyAdminHubs)
-                }
+                _uiState.update { it.copy(isLoading = false, adminHubs = onlyAdminHubs) }
             },
             onError = { errorMsg ->
-                _uiState.update {
-                    it.copy(isLoading = false, error = errorMsg)
+                _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+            }
+        )
+    }
+
+    fun deleteHub(hubId: String, token: String) {
+        val backupList = _uiState.value.adminHubs
+        _uiState.update { it.copy(adminHubs = it.adminHubs.filter { hub -> hub.id != hubId }) }
+
+        repository.deleteOrganization(
+            id = hubId,
+            token = token,
+            onSuccess = {
+                viewModelScope.launch { AppEventBus.emitRefresh() }
+            },
+            onError = { error ->
+                _uiState.update { it.copy(adminHubs = backupList, error = "Erro ao deletar: $error") }
+            }
+        )
+    }
+
+    fun updateHub(id: String, name: String, desc: String, token: String) {
+        repository.updateOrganization(
+            id = id,
+            name = name,
+            description = desc,
+            token = token,
+            onSuccess = { updatedOrg ->
+                _uiState.update { state ->
+                    val newList = state.adminHubs.map { if (it.id == id) updatedOrg else it }
+                    state.copy(adminHubs = newList)
                 }
+                viewModelScope.launch { AppEventBus.emitRefresh() }
+            },
+            onError = { error ->
+                _uiState.update { it.copy(error = "Erro ao atualizar: $error") }
             }
         )
     }
@@ -85,7 +138,7 @@ class AdministrarViewModel(
 }
 
 // ==========================================
-// 2. TELA PRINCIPAL (UI)
+// 2. TELA PRINCIPAL
 // ==========================================
 
 @Composable
@@ -93,14 +146,13 @@ fun AdministrarScreen(
     navController: NavHostController,
     viewModel: AdministrarViewModel = viewModel { AdministrarViewModel() }
 ) {
-    // 1. Pega Token e ID do Usuário Logado
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
-
-    // 2. Observa estado da tela
     val uiState by viewModel.uiState.collectAsState()
 
-    // 3. Carrega dados ao entrar
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedHubForEdit by remember { mutableStateOf<Organization?>(null) }
+
     LaunchedEffect(Unit) {
         viewModel.fetchAdminHubs(authState.token, authState.user?.id)
     }
@@ -111,8 +163,7 @@ fun AdministrarScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // --- Cabeçalho ---
+            // ... Cabeçalho ...
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,24 +172,18 @@ fun AdministrarScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text("Hubs que administro", style = MaterialTheme.typography.titleMedium)
-
-                Button(
-                    onClick = {
-                        navController.navigate(DashboardRoute.CriarHub)
-                    },
-                ) {
+                Button(onClick = { navController.navigate(DashboardRoute.CriarHub) }) {
                     Text("Criar", style = MaterialTheme.typography.labelMedium)
                 }
             }
 
-            // --- Conteúdo ---
+            // ... Conteúdo ...
             when {
                 uiState.isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
-
                 uiState.error != null -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -149,26 +194,23 @@ fun AdministrarScreen(
                         }
                     }
                 }
-
                 uiState.adminHubs.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            "Você ainda não administra nenhum Hub.",
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text("Você ainda não administra nenhum Hub.", color = Color.Gray)
                     }
                 }
-
                 else -> {
                     LazyColumn(modifier = Modifier.fillMaxWidth()) {
                         items(uiState.adminHubs) { org ->
                             HubAdminCard(
                                 organization = org,
                                 onHubClick = { hubId ->
-                                    navController.navigate(
-                                        DashboardRoute.DetalhesHub(hubId = hubId)
-                                    )
+                                    navController.navigate(DashboardRoute.DetalhesHub(hubId = hubId))
+                                },
+                                onDelete = { viewModel.deleteHub(org.id, authState.token ?: "") },
+                                onEdit = {
+                                    selectedHubForEdit = org
+                                    showEditDialog = true
                                 }
                             )
                         }
@@ -177,17 +219,32 @@ fun AdministrarScreen(
             }
         }
     }
+
+    if (showEditDialog && selectedHubForEdit != null) {
+        EditHubDialog(
+            hub = selectedHubForEdit!!,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { name, desc ->
+                viewModel.updateHub(selectedHubForEdit!!.id, name, desc, authState.token ?: "")
+                showEditDialog = false
+            }
+        )
+    }
 }
 
 // ==========================================
-// 3. COMPONENTES (CARD)
+// 3. COMPONENTES
 // ==========================================
 
 @Composable
 fun HubAdminCard(
     organization: Organization,
-    onHubClick: (String) -> Unit
+    onHubClick: (String) -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -199,44 +256,87 @@ fun HubAdminCard(
         )
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = organization.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = organization.hubCode,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = organization.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = organization.hubCode, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Row(
-                modifier = Modifier.padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Groups,
-                    contentDescription = "Membros",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Groups, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                val totalPessoas = organization.members.size + organization.admins.size + organization.validators.size
+                Text(text = "$totalPessoas", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp))
 
-                // CÁLCULO CORRIGIDO: Soma o tamanho de todas as listas de usuários
-                val totalPessoas = organization.members.size +
-                        organization.admins.size +
-                        organization.validators.size
+                Spacer(Modifier.width(8.dp))
 
-                Text(text = "$totalPessoas", style = MaterialTheme.typography.bodyMedium)
+                Box {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Opções")
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Editar") },
+                            onClick = {
+                                expanded = false
+                                onEdit()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Excluir", color = Color.Red) },
+                            onClick = {
+                                expanded = false
+                                onDelete()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) }
+                        )
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+fun EditHubDialog(
+    hub: Organization,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    var name by remember { mutableStateOf(hub.name) }
+    var description by remember { mutableStateOf(hub.description) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar Organização") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nome") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Descrição") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(name, description) }) { Text("Salvar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }
