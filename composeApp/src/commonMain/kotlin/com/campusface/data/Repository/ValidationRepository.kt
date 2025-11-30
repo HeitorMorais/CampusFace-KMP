@@ -37,7 +37,7 @@ data class GenerateCodeResponse(
 // --- Repository ---
 class ValidationRepository {
 
-    private val client = HttpClient(CIO) {
+    private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

@@ -92,6 +92,7 @@ kotlin {
         }
         wasmJsMain.dependencies{
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
+            implementation("io.ktor:ktor-client-js:3.3.2")
 
         }
         androidMain.dependencies{

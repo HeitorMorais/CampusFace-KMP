@@ -15,20 +15,30 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+
+// --- NOVO: Modelo de resposta para quando a API retorna uma LISTA ---
+@Serializable
+data class OrganizationListResponse(
+    val success: Boolean,
+    val message: String,
+    val data: List<Organization> = emptyList()
+)
 
 class OrganizationRepository {
 
-    private val client = HttpClient(CIO) {
+    private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
-                ignoreUnknownKeys = true // Importante para ignorar campos extras como 'createdAt' se não mapeados
+                ignoreUnknownKeys = true
                 prettyPrint = true
                 isLenient = true
             })
         }
     }
 
+    // --- Função Existente: Criar Organização ---
     fun createOrganization(
         name: String,
         description: String,
@@ -56,14 +66,12 @@ class OrganizationRepository {
                     )
                 }
 
-                // Verifica erros HTTP (400, 401, 403, 500)
                 if (httpResponse.status.value >= 400) {
                     val errorBody = httpResponse.bodyAsText()
                     onError("Erro ${httpResponse.status.value}: $errorBody")
                     return@launch
                 }
 
-                // Tenta deserializar o JSON
                 val response = httpResponse.body<OrganizationResponse>()
 
                 if (response.success && response.data != null) {
@@ -74,6 +82,55 @@ class OrganizationRepository {
 
             } catch (e: Exception) {
                 println("CreateOrganization ERROR: ${e.message}")
+                e.printStackTrace()
+                onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
+    // --- NOVO: Listar Meus Hubs (GET) ---
+    fun getMyHubs(
+        token: String?,
+        onSuccess: (List<Organization>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        // Validação básica do token antes de chamar a rede
+        if (token.isNullOrBlank()) {
+            onError("Token inválido ou não encontrado.")
+            return
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                println("Buscando meus hubs...")
+
+                // GET Request
+                val httpResponse = client.get(BASE_URL + "/organizations/my-hubs") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                }
+
+                // Verifica erro HTTP
+                if (httpResponse.status.value >= 400) {
+                    val errorBody = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $errorBody")
+                    return@launch
+                }
+
+                // Parse usando a nova classe de lista
+                val response = httpResponse.body<OrganizationListResponse>()
+
+                if (response.success) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+
+            } catch (e: Exception) {
+                println("GetMyHubs ERROR: ${e.message}")
                 e.printStackTrace()
                 onError("Erro de conexão: ${e.message}")
             }

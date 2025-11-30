@@ -22,9 +22,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// IMPORTS OBRIGATÓRIOS PARA DATA/HORA
-import kotlinx.datetime.Clock
+// IMPORTS OBRIGATÓRIOS
 import kotlinx.datetime.Instant
+// Removemos o import do Clock para evitar conflito e usamos o nome completo lá embaixo
 
 // Imports do seu projeto
 import com.campusface.components.AdaptiveScreenContainer
@@ -32,6 +32,8 @@ import com.campusface.data.Repository.GeneratedCodeData
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.data.Repository.ValidationRepository
 import qrgenerator.qrkitpainter.rememberQrKitPainter
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 // ==========================================
 // 1. VIEW MODEL & STATE
@@ -74,19 +76,19 @@ class QrCodeViewModel(
         )
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun startCountdown(expirationIsoString: String) {
         viewModelScope.launch {
             try {
                 // 1. Converte a string da API para Segundos (Long)
-                // Se der erro aqui, é porque a string não é ISO-8601 válida
                 val expirationSeconds = Instant.parse(expirationIsoString).epochSeconds
 
                 while (true) {
-                    // 2. Pega a hora atual em Segundos (Long)
-                    // Clock.System.now() funciona em Android e iOS
+                    // 2. CORREÇÃO: Usamos o nome completo (fully qualified name)
+                    // Isso evita o erro 'Unresolved reference System'
                     val nowSeconds = Clock.System.now().epochSeconds
 
-                    // 3. Subtração simples de números inteiros (evita erro de operador)
+                    // 3. Subtração simples
                     val remaining = expirationSeconds - nowSeconds
 
                     if (remaining <= 0) {
@@ -113,7 +115,7 @@ class QrCodeViewModel(
 @Composable
 fun QrCodeMembroScreen(
     navController: NavHostController,
-    // TODO: Receba este ID via navegação para não ficar fixo
+    // TODO: Certifique-se de passar o ID correto vindo da navegação
     organizationId: String = "ID_DA_ORGANIZACAO",
     viewModel: QrCodeViewModel = viewModel { QrCodeViewModel() }
 ) {

@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -22,12 +23,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Imports do seu projeto
+// --- IMPORTS DOS SEUS MODELS E REPOSITÓRIOS ---
+// Certifique-se que os pacotes correspondem ao seu projeto
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.DashboardRoute
-import com.campusface.data.Repository.EntryRequest
-import com.campusface.data.Repository.EntryRequestRepository
 import com.campusface.data.Repository.LocalAuthRepository
+import com.campusface.data.Repository.EntryRequestRepository
+import com.campusface.data.Repository.OrganizationRepository
+import com.campusface.data.Repository.EntryRequest
+import com.campusface.data.Model.Organization
 
 // ==========================================
 // 1. VIEW MODEL & STATE
@@ -35,33 +39,63 @@ import com.campusface.data.Repository.LocalAuthRepository
 
 data class MembroUiState(
     val isLoading: Boolean = false,
-    val requests: List<EntryRequest> = emptyList(),
+    val activeHubs: List<Organization> = emptyList(), // Hubs que já sou membro (Verdes)
+    val pendingRequests: List<EntryRequest> = emptyList(), // Solicitações pendentes/recusadas (Amarelas/Vermelhas)
     val error: String? = null
 )
 
 class MembroViewModel(
-    private val repository: EntryRequestRepository = EntryRequestRepository()
+    private val orgRepo: OrganizationRepository = OrganizationRepository(),
+    private val entryRepo: EntryRequestRepository = EntryRequestRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MembroUiState())
     val uiState = _uiState.asStateFlow()
 
-    fun fetchMyRequests(token: String?) {
-        if (token.isNullOrBlank()) return
+    private var isLoaded = false
 
-        // Inicia Loading
+    fun fetchAllData(token: String?, forceReload: Boolean = false) {
+        if (token.isNullOrBlank()) return
+        if (isLoaded && !forceReload) return
+
         _uiState.update { it.copy(isLoading = true, error = null) }
 
-        repository.listMyRequests(
+        // Estratégia: Busca Hubs Ativos primeiro -> Depois busca Solicitações
+        orgRepo.getMyHubs(
             token = token,
-            onSuccess = { list ->
+            onSuccess = { hubs ->
+                // Sucesso na primeira chamada, agora chama a segunda
+                fetchRequests(token, hubs)
+            },
+            onError = { error ->
+                // Falha na primeira, tenta a segunda mesmo assim (resiliência)
+                fetchRequests(token, emptyList(), error)
+            }
+        )
+    }
+
+    private fun fetchRequests(token: String, currentHubs: List<Organization>, previousError: String? = null) {
+        entryRepo.listMyRequests(
+            token = token,
+            onSuccess = { requests ->
+                isLoaded = true
                 _uiState.update {
-                    it.copy(isLoading = false, requests = list)
+                    it.copy(
+                        isLoading = false,
+                        activeHubs = currentHubs,
+                        pendingRequests = requests,
+                        error = previousError // Mantém erro se houve na primeira chamada
+                    )
                 }
             },
             onError = { error ->
                 _uiState.update {
-                    it.copy(isLoading = false, error = error)
+                    it.copy(
+                        isLoading = false,
+                        activeHubs = currentHubs,
+                        pendingRequests = emptyList(),
+                        error = previousError ?: error
+                    )
                 }
             }
         )
@@ -75,26 +109,21 @@ class MembroViewModel(
 @Composable
 fun MembroScreen(
     navController: NavHostController,
-    // Injeção do ViewModel usando lambda factory para evitar erros de reflexão
     viewModel: MembroViewModel = viewModel { MembroViewModel() }
 ) {
-    // 1. Pega o token do repositório local
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
-
-    // 2. Observa o estado da UI vindo do ViewModel
     val uiState by viewModel.uiState.collectAsState()
 
-    // 3. Busca os dados assim que a tela abre
+    // Carrega tudo ao entrar na tela
     LaunchedEffect(Unit) {
-        viewModel.fetchMyRequests(authState.token)
+        viewModel.fetchAllData(authState.token)
     }
 
     AdaptiveScreenContainer {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            // Alterado para Top para a lista ocupar o espaço corretamente
             verticalArrangement = Arrangement.Top
         ) {
 
@@ -105,12 +134,14 @@ fun MembroScreen(
                     .padding(horizontal = 16.dp, vertical = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Hubs que sou membro", style = MaterialTheme.typography.titleMedium)
+                Text("Meus Hubs", style = MaterialTheme.typography.titleMedium)
+
+                // Em MembroScreen.kt
 
                 Button(
                     onClick = {
-                        // Navega para a tela de solicitar entrada em novo Hub
-                        navController.navigate(DashboardRoute.AdicionarMembro)
+                        // Passa o argumento explicitamente
+                        navController.navigate(DashboardRoute.AdicionarMembro(role = "MEMBER"))
                     },
                     modifier = Modifier
                 ) {
@@ -123,22 +154,13 @@ fun MembroScreen(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (uiState.error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Erro ao carregar:", color = MaterialTheme.colorScheme.error)
-                        Text(uiState.error!!, style = MaterialTheme.typography.bodySmall)
-                        Button(onClick = { viewModel.fetchMyRequests(authState.token) }) {
-                            Text("Tentar Novamente")
-                        }
-                    }
-                }
             } else {
-                // Lista de Sucesso
-                HubListFromApi(
-                    requests = uiState.requests,
+                UnifiedHubList(
+                    activeHubs = uiState.activeHubs,
+                    pendingRequests = uiState.pendingRequests,
                     navController = navController,
-                    isValidator = false
+                    isValidator = false,
+                    error = uiState.error
                 )
             }
         }
@@ -146,65 +168,99 @@ fun MembroScreen(
 }
 
 // ==========================================
-// 3. COMPONENTES AUXILIARES
+// 3. COMPONENTES AUXILIARES (Cards e Lista)
 // ==========================================
 
 @Composable
-fun HubListFromApi(
-    requests: List<EntryRequest>,
+fun UnifiedHubList(
+    activeHubs: List<Organization>,
+    pendingRequests: List<EntryRequest>,
     navController: NavHostController,
-    isValidator: Boolean
+    isValidator: Boolean,
+    error: String?
 ) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
-        if (requests.isEmpty()) {
+
+        // Se houver erro parcial, mostra no topo
+        if (error != null) {
+            item {
+                Text(
+                    text = "Aviso: $error",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+
+        // 1. HUBs ATIVOS (Vindos do OrganizationRepository)
+        if (activeHubs.isNotEmpty()) {
+            items(activeHubs) { org ->
+                UnifiedCard(
+                    title = org.name, // Nome da organização
+                    status = "Ativo",
+                    statusColor = Color(0xFF00A12B), // Verde
+                    isClickable = true,
+                    onClick = {
+                        // Navega para QR Code (Você deve ajustar para passar o ID se sua rota suportar)
+                        // Ex: navController.navigate("qrcode/${org.id}")
+                        navController.navigate(if (isValidator) DashboardRoute.QrCodeValidador else DashboardRoute.QrCodeMembro)
+                    }
+                )
+            }
+        }
+
+        // 2. SOLICITAÇÕES (Vindas do EntryRequestRepository)
+        // Filtramos APPROVED para não duplicar, pois APPROVED deve aparecer na lista de cima como ActiveHub
+        val visibleRequests = pendingRequests.filter { it.status != "APPROVED" }
+
+        if (visibleRequests.isNotEmpty()) {
+            items(visibleRequests) { req ->
+                val (color, text) = when(req.status) {
+                    "PENDING" -> Color(0xFFFFBB00) to "Solicitado"
+                    "DENIED" -> Color(0xFFB00020) to "Recusado"
+                    else -> Color.Gray to req.status
+                }
+
+                UnifiedCard(
+                    title = req.hubCode, // EntryRequest só tem o código do hub
+                    status = text,
+                    statusColor = color,
+                    isClickable = false, // Pendente não clica
+                    onClick = {}
+                )
+            }
+        }
+
+        // Estado Vazio Global
+        if (activeHubs.isEmpty() && visibleRequests.isEmpty() && error == null) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     Text(
-                        "Você ainda não solicitou entrada em nenhum Hub.",
+                        "Nenhum hub ou solicitação encontrada.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
                 }
             }
-        } else {
-            items(requests) { request ->
-                RequestCard(
-                    request = request,
-                    navController = navController,
-                    isValidator = isValidator
-                )
-            }
         }
     }
 }
 
 @Composable
-fun RequestCard(
-    request: EntryRequest,
-    navController: NavHostController,
-    isValidator: Boolean
+fun UnifiedCard(
+    title: String,
+    status: String,
+    statusColor: Color,
+    isClickable: Boolean,
+    onClick: () -> Unit
 ) {
-    // Lógica de Cores e Texto baseada no Status da API
-    val (statusColor, statusText) = when (request.status) {
-        "APPROVED" -> Color(0xFF00A12B) to "Ativo"       // Verde
-        "PENDING" -> Color(0xFFFFBB00) to "Solicitado"   // Amarelo
-        "DENIED" -> Color(0xFFB00020) to "Recusado"      // Vermelho
-        else -> Color.Gray to request.status
-    }
-
-    // Apenas aprovados podem clicar para ver QR Code
-    val isClickable = request.status == "APPROVED"
-
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .then(
-                if (isClickable) {
-                    Modifier.clickable(onClick = {
-                        navController.navigate(if (isValidator) DashboardRoute.QrCodeValidador else DashboardRoute.QrCodeMembro)
-                    })
-                } else Modifier
+                if (isClickable) Modifier.clickable { onClick() } else Modifier
             ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -213,38 +269,32 @@ fun RequestCard(
     ) {
         Row(
             modifier = Modifier
-                .padding(24.dp) // Padding ajustado
+                .padding(24.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Nome do Hub (usando hubCode)
             Text(
-                text = request.hubCode,
-                style = MaterialTheme.typography.bodyLarge
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
             )
 
-            // Status com bolinha colorida
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StatusCircle(color = statusColor, tamanho = 10.dp)
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(statusColor, CircleShape)
+                )
                 Text(
-                    text = statusText,
+                    text = status,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
-}
-
-@Composable
-fun StatusCircle(tamanho: Dp = 12.dp, color: Color) {
-    Box(
-        modifier = Modifier
-            .size(tamanho)
-            .background(color = color, shape = CircleShape)
-    )
 }

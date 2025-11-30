@@ -79,8 +79,17 @@ fun DashboardContentNavHost(
 
         }
 
-        composable<DashboardRoute.AdicionarMembro> {
-            AdicionarMembroScreen(navController = navController)
+        // Dentro de DashboardContentNavHost
+
+        composable<DashboardRoute.AdicionarMembro> { backStackEntry ->
+            // 1. Extrai os dados da rota
+            val rota = backStackEntry.toRoute<DashboardRoute.AdicionarMembro>()
+
+            // 2. Passa para a tela
+            AdicionarMembroScreen(
+                navController = navController,
+                targetRole = rota.role // "MEMBER" ou "VALIDATOR"
+            )
         }
 
         composable<DashboardRoute.Administrar> {

@@ -164,7 +164,7 @@ fun RegisterScreen(navController: NavHostController) {
                 OutlinedTextField(
                     value = document,
                     onValueChange = { document = it },
-                    placeholder = { Text("Função", color = Color(0xFFBDBDBD)) },
+                    placeholder = { Text("CPF", color = Color(0xFFBDBDBD)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),

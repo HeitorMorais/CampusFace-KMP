@@ -1,23 +1,23 @@
 package com.campusface.screens.administrarScreen
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -25,125 +25,134 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import com.campusface.data.Model.Hub
-import com.campusface.screens.CreateHubViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class Membro(val id: String, val nome: String, val hubId: String)
-data class Solicitacao(
-    val id: String,
-    val hubId: String,
-    val nomeUsuario: String,
-    val documento: String,
-    val fotoUrl: String,
-    val fotoNovaUrl: String? = null // Null se for entrada, Preenchido se for atualização
-)
-
-// Placeholder para o seu container customizado
-@Composable
-fun AdaptiveScreenContainer(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) { content() }
-}
+// --- IMPORTS DO SEU PROJETO ---
+import com.campusface.components.AdaptiveScreenContainer
+import com.campusface.data.Repository.LocalAuthRepository
+import com.campusface.data.Repository.OrganizationMemberRepository
+import com.campusface.data.Repository.OrganizationMember
+import com.campusface.data.Repository.EntryRequestRepository
+import com.campusface.data.Repository.EntryRequest
+import com.campusface.data.Repository.OrganizationRepository
+import com.campusface.data.Model.Organization
 
 // ==========================================
-// 2. VIEW MODEL & STATE
+// 1. VIEW MODEL & STATE
 // ==========================================
 
 data class HubDetailsUiState(
     val isLoading: Boolean = false,
-    val hub: Hub? = null,
-    val membros: List<Membro> = emptyList(),
-    val entryRequests: List<Solicitacao> = emptyList(),
-    val updateRequests: List<Solicitacao> = emptyList(),
+    val hub: Organization? = null,
+    val membros: List<OrganizationMember> = emptyList(),
+    val entryRequests: List<EntryRequest> = emptyList(), // Lista de solicitações
     val error: String? = null
 )
 
-class HubDetailsViewModel : ViewModel() {
+class HubDetailsViewModel(
+    private val memberRepo: OrganizationMemberRepository = OrganizationMemberRepository(),
+    private val entryRepo: EntryRequestRepository = EntryRequestRepository(),
+    private val orgRepo: OrganizationRepository = OrganizationRepository()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubDetailsUiState())
     val uiState = _uiState.asStateFlow()
 
-    // TODO: Injete seu Repository aqui no construtor
-    // private val repository: HubRepository = HubRepository()
+    private var currentHubCode: String? = null
 
-    fun fetchHubDetails(hubId: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+    fun fetchHubDetails(hubId: String, token: String?) {
+        if (token.isNullOrBlank()) return
 
-            try {
-                // TODO: Chamar sua API aqui
-                // val hub = repository.getHub(hubId)
-                // val membros = repository.getMembros(hubId)
-                // val solicitacoes = repository.getSolicitacoes(hubId)
+        _uiState.update { it.copy(isLoading = true, error = null) }
 
-                // Simulação de sucesso (Remova isso quando tiver a API)
-                println("Buscando dados para o Hub ID: $hubId")
+        // 1. Busca Membros
+        memberRepo.listMembers(
+            organizationId = hubId,
+            token = token,
+            onSuccess = { listaMembros ->
+                _uiState.update { it.copy(membros = listaMembros) }
 
-                // _uiState.update { it.copy(isLoading = false, hub = hub, membros = membros...) }
+                // 2. Busca Detalhes do Hub (para pegar o HubCode)
+                orgRepo.getMyHubs(
+                    token = token,
+                    onSuccess = { hubs ->
+                        val hubEncontrado = hubs.find { it.id == hubId }
+                        if (hubEncontrado != null) {
+                            currentHubCode = hubEncontrado.hubCode
+                            _uiState.update { it.copy(hub = hubEncontrado) }
 
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
-            }
-        }
+                            // 3. Com o HubCode, busca as solicitações de entrada
+                            fetchEntryRequests(hubEncontrado.hubCode, token)
+                        } else {
+                            _uiState.update { it.copy(isLoading = false, error = "Hub não encontrado") }
+                        }
+                    },
+                    onError = { erro -> _uiState.update { it.copy(isLoading = false, error = erro) } }
+                )
+            },
+            onError = { erro -> _uiState.update { it.copy(isLoading = false, error = erro) } }
+        )
     }
 
-    fun aprovarSolicitacao(id: String) {
-        viewModelScope.launch {
-            try {
-                // TODO: Chamar API de aprovação
-                // repository.approveRequest(id)
-                println("Aprovando solicitação $id...")
-
-                // Atualiza UI localmente após sucesso
-                removerSolicitacaoDaLista(id)
-            } catch (e: Exception) {
-                // Tratar erro
-            }
-        }
-    }
-
-    fun recusarSolicitacao(id: String) {
-        viewModelScope.launch {
-            try {
-                // TODO: Chamar API de recusa
-                println("Recusando solicitação $id...")
-                removerSolicitacaoDaLista(id)
-            } catch (e: Exception) {
-                // Tratar erro
-            }
-        }
-    }
-
-    fun removerMembro(id: String) {
-        viewModelScope.launch {
-            try {
-                // TODO: Chamar API de exclusão
-                println("Removendo membro $id...")
-
-                _uiState.update { state ->
-                    state.copy(membros = state.membros.filter { it.id != id })
+    private fun fetchEntryRequests(hubCode: String, token: String) {
+        entryRepo.listPendingRequestsByHub(
+            hubCode = hubCode,
+            token = token,
+            onSuccess = { requests ->
+                _uiState.update {
+                    it.copy(isLoading = false, entryRequests = requests)
                 }
-            } catch (e: Exception) {
-                // Tratar erro
+            },
+            onError = {
+                // Se der erro só aqui, paramos o loading mas mantemos o resto
+                _uiState.update { it.copy(isLoading = false) }
             }
-        }
+        )
     }
 
-    private fun removerSolicitacaoDaLista(id: String) {
-        _uiState.update { state ->
-            state.copy(
-                entryRequests = state.entryRequests.filter { it.id != id },
-                updateRequests = state.updateRequests.filter { it.id != id }
-            )
-        }
+    fun aprovarSolicitacao(requestId: String, token: String) {
+        if (token.isEmpty()) return
+
+        // Remove visualmente (otimista)
+        val backup = _uiState.value.entryRequests
+        _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
+
+        entryRepo.approveRequest(
+            requestId = requestId,
+            token = token,
+            onSuccess = {
+                // Opcional: Recarregar membros pois entrou gente nova
+                // fetchHubDetails(...)
+            },
+            onError = { msg ->
+                // Rollback
+                _uiState.update { it.copy(entryRequests = backup, error = "Erro: $msg") }
+            }
+        )
+    }
+
+    fun recusarSolicitacao(requestId: String, token: String) {
+        if (token.isEmpty()) return
+
+        val backup = _uiState.value.entryRequests
+        _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
+
+        entryRepo.rejectRequest(
+            requestId = requestId,
+            token = token,
+            onSuccess = {},
+            onError = { msg ->
+                _uiState.update { it.copy(entryRequests = backup, error = "Erro: $msg") }
+            }
+        )
     }
 }
 
 // ==========================================
-// 3. TELA PRINCIPAL
+// 2. TELA PRINCIPAL (UI)
 // ==========================================
 
 @Composable
@@ -152,50 +161,20 @@ fun DetalhesHubScreen(
     navController: NavHostController,
     viewModel: HubDetailsViewModel = viewModel { HubDetailsViewModel() }
 ) {
+    val authRepository = LocalAuthRepository.current
+    val authState by authRepository.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    // Carrega dados ao iniciar a tela
     LaunchedEffect(hubId) {
-        viewModel.fetchHubDetails(hubId)
+        viewModel.fetchHubDetails(hubId, authState.token)
     }
-
-    // Estado de Loading
-    if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    // Estado de Erro ou Hub não encontrado (se a API retornar 404)
-    if (uiState.error != null) { // Adicione || uiState.hub == null se sua API retornar null
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = uiState.error ?: "Hub não encontrado",
-                    color = MaterialTheme.colorScheme.error
-                )
-                Button(onClick = { navController.popBackStack() }) { Text("Voltar") }
-            }
-        }
-        return
-    }
-
-    // Se o hub ainda for nulo (estado inicial antes do load), não mostra nada ou loading
-    if (uiState.hub == null) return
-
-    val hub = uiState.hub!!
-    val tabs = listOf("Membros", "Solicitação de Entrada", "Solicitação de Atualização")
-    var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
-    val selectedContentColor = MaterialTheme.colorScheme.primary
-    val unselectedContentColor = Color.Gray
 
     AdaptiveScreenContainer {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             // --- HEADER ---
             Row(
                 modifier = Modifier
@@ -209,76 +188,27 @@ fun DetalhesHubScreen(
                 }
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = hub.nome,
+                    text = uiState.hub?.name ?: "Carregando...",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
 
-            // --- TABS ---
-            PrimaryTabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = Color.Transparent,
-                contentColor = selectedContentColor
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    val isSelected = selectedTabIndex == index
-                    Tab(
-                        selected = isSelected,
-                        onClick = { selectedTabIndex = index },
-                        text = {
-                            Text(
-                                title,
-                                color = if (isSelected) selectedContentColor else unselectedContentColor
-                            )
-                        }
-                    )
+            // --- LOADING / ERRO ---
+            if (uiState.isLoading && uiState.hub == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-            }
-
-            // --- CONTEÚDO DAS TABS ---
-            Crossfade(
-                targetState = selectedTabIndex,
-                label = "Tab Content Transition",
-                modifier = Modifier.fillMaxSize()
-            ) { index ->
-                when (index) {
-                    0 -> TabContentMembros(
-                        listaMembros = uiState.membros,
-                        onDelete = { id -> viewModel.removerMembro(id) }
-                    )
-                    1 -> TabContentSolicitacaoEntrada(
-                        listaSolicitacoes = uiState.entryRequests,
-                        onAceitar = { id -> viewModel.aprovarSolicitacao(id) },
-                        onRecusar = { id -> viewModel.recusarSolicitacao(id) }
-                    )
-                    2 -> TabContentSolicitacaoAtualizacao(
-                        listaSolicitacoes = uiState.updateRequests,
-                        onAceitar = { id -> viewModel.aprovarSolicitacao(id) },
-                        onRecusar = { id -> viewModel.recusarSolicitacao(id) }
-                    )
+            } else if (uiState.error != null && uiState.hub == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Erro: ${uiState.error}", color = MaterialTheme.colorScheme.error)
                 }
-            }
-        }
-    }
-}
-
-// ==========================================
-// 4. SUB-COMPONENTES
-// ==========================================
-
-@Composable
-fun TabContentMembros(
-    listaMembros: List<Membro>,
-    onDelete: (String) -> Unit
-) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        if (listaMembros.isEmpty()) {
-            item { Text("Nenhum membro cadastrado.", modifier = Modifier.padding(16.dp)) }
-        } else {
-            items(listaMembros) { membro ->
-                MembroCard(
-                    nome = membro.nome,
-                    onDelete = { onDelete(membro.id) }
+            } else {
+                // --- CONTEÚDO DAS TABS ---
+                HubTabsContent(
+                    membros = uiState.membros,
+                    solicitacoes = uiState.entryRequests,
+                    onAprovar = { id -> viewModel.aprovarSolicitacao(id, authState.token ?: "") },
+                    onRecusar = { id -> viewModel.recusarSolicitacao(id, authState.token ?: "") }
                 )
             }
         }
@@ -286,58 +216,105 @@ fun TabContentMembros(
 }
 
 @Composable
-fun MembroCard(nome: String, onDelete: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-    ) {
+fun HubTabsContent(
+    membros: List<OrganizationMember>,
+    solicitacoes: List<EntryRequest>,
+    onAprovar: (String) -> Unit,
+    onRecusar: (String) -> Unit
+) {
+    val tabs = listOf("Membros", "Solicitações", "Atualizações")
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+
+    Column {
+        PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = {
+                        // Mostra contador na tab de solicitações se houver pendências
+                        if (index == 1 && solicitacoes.isNotEmpty()) {
+                            Text("$title (${solicitacoes.size})")
+                        } else {
+                            Text(title)
+                        }
+                    }
+                )
+            }
+        }
+
+        Crossfade(targetState = selectedTabIndex, label = "Tabs") { index ->
+            when (index) {
+                0 -> TabContentMembros(membros)
+                1 -> TabContentSolicitacaoEntrada(solicitacoes, onAprovar, onRecusar)
+                2 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Sem atualizações pendentes", color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// 3. SUB-COMPONENTS (TABS)
+// ==========================================
+
+// --- TAB MEMBROS ---
+@Composable
+fun TabContentMembros(listaMembros: List<OrganizationMember>) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        if (listaMembros.isEmpty()) {
+            item {
+                Text("Nenhum membro encontrado.", modifier = Modifier.padding(16.dp))
+            }
+        } else {
+            items(listaMembros) { membro ->
+                MembroCard(
+                    nome = membro.user.fullName,
+                    role = membro.role
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MembroCard(nome: String, role: String) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = nome,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
-            )
-
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Excluir") },
-                        onClick = {
-                            onDelete()
-                            expanded = false
-                        }
-                    )
-                }
+            Column {
+                Text(text = nome, style = MaterialTheme.typography.bodyMedium)
+                Text(text = role, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            }
+            IconButton(onClick = { /* Menu */ }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
             }
         }
     }
 }
 
-
+// --- TAB SOLICITAÇÕES ---
 @Composable
 fun TabContentSolicitacaoEntrada(
-    listaSolicitacoes: List<Solicitacao>,
+    listaSolicitacoes: List<EntryRequest>,
     onAceitar: (String) -> Unit,
     onRecusar: (String) -> Unit
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         if (listaSolicitacoes.isEmpty()) {
-            item { Text("Nenhuma solicitação pendente.", modifier = Modifier.padding(16.dp)) }
+            item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("Nenhuma solicitação pendente.", color = Color.Gray)
+                }
+            }
         } else {
             items(listaSolicitacoes) { solicitacao ->
                 SolicitacaoCard(
                     solicitacao = solicitacao,
-                    isUpdate = false,
                     onAceitar = { onAceitar(solicitacao.id) },
                     onRecusar = { onRecusar(solicitacao.id) }
                 )
@@ -345,81 +322,47 @@ fun TabContentSolicitacaoEntrada(
             }
         }
     }
-}
-
-@Composable
-fun TabContentSolicitacaoAtualizacao(
-    listaSolicitacoes: List<Solicitacao>,
-    onAceitar: (String) -> Unit,
-    onRecusar: (String) -> Unit
-) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        if (listaSolicitacoes.isEmpty()) {
-            item { Text("Nenhuma solicitação de atualização pendente.", modifier = Modifier.padding(16.dp)) }
-        } else {
-            items(listaSolicitacoes) { solicitacao ->
-                SolicitacaoCard(
-                    solicitacao = solicitacao,
-                    isUpdate = true,
-                    onAceitar = { onAceitar(solicitacao.id) },
-                    onRecusar = { onRecusar(solicitacao.id) }
-                )
-                HorizontalDivider()
-            }
-        }
-    }
-}
-
-// --- Componentes Visuais ---
-
-@Composable
-fun PhotoCircle(tamanho: Dp = 70.dp, url: String) {
-    AsyncImage(
-        modifier = Modifier.size(tamanho).padding(4.dp).clip(CircleShape),
-        model = url,
-        contentDescription = null,
-        placeholder = ColorPainter(Color.LightGray),
-        fallback = ColorPainter(Color.LightGray),
-        contentScale = ContentScale.Crop
-    )
 }
 
 @Composable
 fun SolicitacaoCard(
-    solicitacao: Solicitacao,
-    isUpdate: Boolean,
+    solicitacao: EntryRequest,
     onAceitar: () -> Unit,
     onRecusar: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(Color.Transparent),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
             ) {
-                if (isUpdate && solicitacao.fotoNovaUrl != null) {
-                    PhotoCircle(tamanho = 50.dp, url = solicitacao.fotoNovaUrl)
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Mudar para",
-                        modifier = Modifier.size(16.dp).padding(horizontal = 4.dp),
-                        tint = Color.Gray
-                    )
-                }
+                // Tenta pegar a URL do Cloudinary ou placeholder
+                val imageUrl = solicitacao.user.faceImageId ?: ""
 
-                PhotoCircle(url = solicitacao.fotoUrl)
+                PhotoCircle(url = imageUrl) // Usa o helper
 
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column {
-                    Text(solicitacao.nomeUsuario, style = MaterialTheme.typography.bodyMedium)
-                    Text(solicitacao.documento, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = solicitacao.user.fullName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Cargo: ${solicitacao.role}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    solicitacao.user.document?.let {
+                        Text(text = it, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    }
                 }
             }
 
@@ -436,11 +379,23 @@ fun SolicitacaoCard(
                     modifier = Modifier.padding(end = 8.dp)
                 ) { Text("Recusar") }
 
-                OutlinedButton(
+                Button(
                     onClick = onAceitar,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xff009929)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A12B)),
                 ) { Text("Aceitar") }
             }
         }
     }
+}
+
+@Composable
+fun PhotoCircle(tamanho: Dp = 60.dp, url: String) {
+    AsyncImage(
+        modifier = Modifier.size(tamanho).padding(4.dp).clip(CircleShape).background(Color.LightGray),
+        model = url,
+        contentDescription = null,
+        placeholder = ColorPainter(Color.LightGray),
+        error = ColorPainter(Color.Gray),
+        contentScale = ContentScale.Crop
+    )
 }

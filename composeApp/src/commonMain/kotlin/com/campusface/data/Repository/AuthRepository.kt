@@ -55,7 +55,7 @@
 
     class AuthRepository {
 
-        private val client = HttpClient(CIO) {
+        private val client = HttpClient {
             install(ContentNegotiation) {
                 json(kotlinx.serialization.json.Json {
                     ignoreUnknownKeys = true
