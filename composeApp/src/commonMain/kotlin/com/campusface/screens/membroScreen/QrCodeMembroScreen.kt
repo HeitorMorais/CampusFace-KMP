@@ -22,9 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// IMPORTS OBRIGATÓRIOS
+// --- IMPORTS CRÍTICOS DE DATA (USAR APENAS KOTLINX.DATETIME) ---
 import kotlinx.datetime.Instant
-// Removemos o import do Clock para evitar conflito e usamos o nome completo lá embaixo
 
 // Imports do seu projeto
 import com.campusface.components.AdaptiveScreenContainer
@@ -32,7 +31,6 @@ import com.campusface.data.Repository.GeneratedCodeData
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.data.Repository.ValidationRepository
 import qrgenerator.qrkitpainter.rememberQrKitPainter
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 // ==========================================
@@ -59,6 +57,7 @@ class QrCodeViewModel(
             return
         }
 
+        // Se já carregou, não carrega de novo (mantém o código na tela)
         if (_uiState.value.codeData != null) return
 
         _uiState.update { it.copy(isLoading = true, error = null) }
@@ -80,15 +79,15 @@ class QrCodeViewModel(
     private fun startCountdown(expirationIsoString: String) {
         viewModelScope.launch {
             try {
-                // 1. Converte a string da API para Segundos (Long)
+                // 1. Converte a string ISO 8601 da API para Segundos (Long)
                 val expirationSeconds = Instant.parse(expirationIsoString).epochSeconds
 
                 while (true) {
-                    // 2. CORREÇÃO: Usamos o nome completo (fully qualified name)
-                    // Isso evita o erro 'Unresolved reference System'
-                    val nowSeconds = Clock.System.now().epochSeconds
+                    // 2. Pega a hora atual do sistema em Segundos (Long)
+                    // Usando kotlinx.datetime.Clock para consistência
+                    val nowSeconds = kotlin.time.Clock.System.now().epochSeconds
 
-                    // 3. Subtração simples
+                    // 3. Subtração simples (Long - Long)
                     val remaining = expirationSeconds - nowSeconds
 
                     if (remaining <= 0) {
@@ -99,7 +98,7 @@ class QrCodeViewModel(
                     }
 
                     _uiState.update { it.copy(secondsRemaining = remaining) }
-                    delay(1000)
+                    delay(1000) // Atualiza a cada 1 segundo
                 }
             } catch (e: Exception) {
                 println("Erro ao iniciar timer: ${e.message}")
@@ -115,14 +114,15 @@ class QrCodeViewModel(
 @Composable
 fun QrCodeMembroScreen(
     navController: NavHostController,
-    // TODO: Certifique-se de passar o ID correto vindo da navegação
-    organizationId: String = "ID_DA_ORGANIZACAO",
+    // O ID deve vir da navegação. Se estiver vazio, vai dar erro na API.
+    organizationId: String,
     viewModel: QrCodeViewModel = viewModel { QrCodeViewModel() }
 ) {
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
+    // Dispara a chamada assim que entra na tela
     LaunchedEffect(Unit) {
         viewModel.loadQrCode(organizationId, authState.token)
     }
@@ -150,23 +150,34 @@ fun QrCodeMembroScreen(
             Spacer(Modifier.height(20.dp))
 
             when {
+                // Estado: Carregando
                 uiState.isLoading -> {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(16.dp))
-                    Text("Gerando código seguro...", style = MaterialTheme.typography.bodyMedium)
+                    Text("Gerando código de acesso...", style = MaterialTheme.typography.bodyMedium)
                 }
 
+                // Estado: Erro
                 uiState.error != null -> {
                     Icon(Icons.Default.Refresh, "Erro", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = uiState.error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
                     Button(onClick = { navController.popBackStack() }, modifier = Modifier.padding(top = 16.dp)) {
                         Text("Voltar")
                     }
                 }
 
+                // Estado: Sucesso
                 uiState.codeData != null -> {
                     val code = uiState.codeData!!.code
+
+                    // Gera o desenho do QR
                     val painter = rememberQrKitPainter(data = code)
 
                     Card(
@@ -187,14 +198,17 @@ fun QrCodeMembroScreen(
                         }
                     }
 
+                    // Exibe o código numérico
                     Text(
                         text = code.chunked(3).joinToString(" "),
                         style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
 
                     Spacer(Modifier.height(24.dp))
 
+                    // Contador
                     if (uiState.secondsRemaining > 0) {
                         Text(
                             "Expira em ${uiState.secondsRemaining} segundos",

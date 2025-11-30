@@ -3,15 +3,15 @@ package com.campusface.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
 import com.campusface.components.BottomBar
-import androidx.compose.runtime.getValue
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.campusface.components.Sidebar
 import com.campusface.navigation.DashboardRoute
 import com.campusface.screens.membroScreen.MembroScreen
@@ -25,7 +25,6 @@ import com.campusface.screens.validarScreen.QrCodeValidadorScreen
 @Composable
 fun DashboardLayout(
     navController: NavHostController
-    // 👈 NÃO PRECISA MAIS DE userId NEM userRepository
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
 
@@ -70,8 +69,6 @@ fun DashboardContentNavHost(
             MembroScreen(navController = navController)
         }
 
-        // Dentro de DashboardContentNavHost
-
         composable<DashboardRoute.AdicionarMembro> { backStackEntry ->
             // 1. Extrai os dados da rota
             val rota = backStackEntry.toRoute<DashboardRoute.AdicionarMembro>()
@@ -96,7 +93,7 @@ fun DashboardContentNavHost(
         }
 
         composable<DashboardRoute.MeuPerfil> {
-            MeuPerfilScreen()  // 👈 NÃO PRECISA PASSAR NADA
+            MeuPerfilScreen()
         }
 
         composable<DashboardRoute.DetalhesHub> { backStackEntry ->
@@ -107,11 +104,18 @@ fun DashboardContentNavHost(
             )
         }
 
+        // --- CORREÇÃO AQUI ---
         composable<DashboardRoute.QrCodeMembro> { backStackEntry ->
-            QrCodeMembroScreen(navController = navController)
+            // Extrai o ID da organização passado na navegação
+            val rota = backStackEntry.toRoute<DashboardRoute.QrCodeMembro>()
+
+            QrCodeMembroScreen(
+                navController = navController,
+                organizationId = rota.organizationId // <--- Passa o ID para a tela
+            )
         }
 
-        composable<DashboardRoute.QrCodeValidador> { backStackEntry ->
+        composable<DashboardRoute.QrCodeValidador> {
             QrCodeValidadorScreen(navController = navController)
         }
     }

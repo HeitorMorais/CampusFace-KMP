@@ -13,8 +13,7 @@ sealed interface DashboardRoute {
     data class AdicionarMembro(val role: String = "MEMBER") : DashboardRoute
 
     @Serializable
-    @SerialName("qrcode-membro")
-    data object QrCodeMembro : DashboardRoute
+    data class QrCodeMembro(val organizationId: String) : DashboardRoute
 
     @Serializable
     @SerialName("qrcode-validador")

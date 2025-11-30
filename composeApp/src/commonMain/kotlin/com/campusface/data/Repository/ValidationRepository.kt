@@ -3,7 +3,6 @@ package com.campusface.data.Repository
 import com.campusface.data.BASE_URL
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -15,16 +14,34 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// --- Models baseados no Swagger ---
+// --- MODELS (Baseados no Swagger) ---
+@Serializable
+data class ValidateCodeRequest(
+    val code: String
+)
+
+@Serializable
+data class ValidationResponseData(
+    val valid: Boolean,
+    val message: String,
+    val member: OrganizationMember? = null // Retorna os dados do membro se válido
+)
+
+@Serializable
+data class ValidationApiResponse(
+    val success: Boolean,
+    val message: String,
+    val data: ValidationResponseData? = null
+)
 @Serializable
 data class GenerateCodeRequest(
-    val organizationId: String
+    val organizationId: String // O Swagger pede exatamente este campo no body
 )
 
 @Serializable
 data class GeneratedCodeData(
     val code: String,
-    val expirationTime: String // Formato ISO 8601 ex: 2025-11-29T06:28:37.736Z
+    val expirationTime: String // ISO 8601 ex: 2025-11-30T03:11:44.492Z
 )
 
 @Serializable
@@ -34,7 +51,8 @@ data class GenerateCodeResponse(
     val data: GeneratedCodeData? = null
 )
 
-// --- Repository ---
+// --- REPOSITORY ---
+
 class ValidationRepository {
 
     private val client = HttpClient {
@@ -55,17 +73,20 @@ class ValidationRepository {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
+                // POST /validate/qr-code/generate
                 val httpResponse = client.post(BASE_URL + "/validate/qr-code/generate") {
                     headers {
                         append("ngrok-skip-browser-warning", "true")
                         append(HttpHeaders.Authorization, "Bearer $token")
                     }
                     contentType(ContentType.Application.Json)
+                    // Envia o JSON { "organizationId": "..." }
                     setBody(GenerateCodeRequest(organizationId))
                 }
 
                 if (httpResponse.status.value >= 400) {
-                    onError("Erro ${httpResponse.status.value}")
+                    val raw = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $raw")
                     return@launch
                 }
 
@@ -78,8 +99,40 @@ class ValidationRepository {
                 }
 
             } catch (e: Exception) {
-                e.printStackTrace()
                 onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+    fun validateQrCode(
+        code: String,
+        token: String,
+        onSuccess: (ValidationResponseData) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.post(BASE_URL + "/validate/qr-code") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                    setBody(ValidateCodeRequest(code))
+                }
+
+                // API retorna 200 para sucesso e 422 para inválido/expirado
+                val rawResponse = httpResponse.body<ValidationApiResponse>()
+
+                if (rawResponse.success && rawResponse.data != null) {
+                    onSuccess(rawResponse.data)
+                } else {
+                    // Se a API retornar sucesso=false no body, tratamos como erro
+                    onError(rawResponse.message)
+                }
+
+            } catch (e: Exception) {
+                // Erros de rede ou 403 (permissão) caem aqui
+                onError("Erro de validação: ${e.message}")
             }
         }
     }

@@ -1,136 +1,260 @@
 package com.campusface.screens.validarScreen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Arrangement.Absolute.Center
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.Clipboard
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.campusface.components.AdaptiveScreenContainer
-import com.campusface.isCameraSupported
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+// Imports do seu projeto
+import com.campusface.components.AdaptiveScreenContainer
+import com.campusface.data.Repository.LocalAuthRepository
+import com.campusface.data.Repository.ValidationRepository
+import com.campusface.data.Repository.ValidationResponseData
+import com.campusface.isCameraSupported // Sua função utilitária de KMP
 import qrscanner.CameraLens
 import qrscanner.OverlayShape
 import qrscanner.QrScanner
 
-
-@Composable
-fun QrCodeValidadorScreen(navController : NavHostController) {
-    val coroutineScope = rememberCoroutineScope()
-    // val clipboardManager: Clipboard = LocalClipboardManager.current as Clipboard
-    val snackbarHostState = remember { SnackbarHostState() }
-    val zoomLevels = listOf(1f, 2f, 3f)
-    var selectedZoomIndex = 0
-    var memberCode = "teste.com"
-    var qrCodeURL by remember { mutableStateOf("") }
-    var flashlightOn by remember { mutableStateOf(false) }
-    var openImagePicker by remember { mutableStateOf(false) }
-    var overlayShape by remember { mutableStateOf(OverlayShape.Square) }
-    var cameraLens by remember { mutableStateOf(CameraLens.Back) }
-    var currentZoomLevel by remember { mutableStateOf(zoomLevels[selectedZoomIndex]) }
-    AdaptiveScreenContainer(){
-        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally){
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ){
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar para lista")
-                }
-                Spacer(Modifier.width(8.dp))
-                if(isCameraSupported()) {
-                    Column(modifier = Modifier.fillMaxSize()){
-                        if(qrCodeURL==memberCode) TextoSucesso(texto = "Acesso Permitido", navController = navController)
-                    QrScanner(
-                        modifier = Modifier.fillMaxSize(),
-                        flashlightOn = flashlightOn,
-                        cameraLens = cameraLens,
-                        openImagePicker = openImagePicker,
-                        onCompletion = { qrCodeURL = it },
-                        zoomLevel = currentZoomLevel,
-                        maxZoomLevel = 3f,
-                        imagePickerHandler = { openImagePicker = it },
-                        onFailure = {
-                        },
-                        overlayShape = overlayShape
-                    )
-                    }
-
-                } else {
-                    Text("Scanner só está disponível em ambiente mobile")
-                }
-            }
-
-        }
-    }
+// ==========================================
+// 1. HELPER DE IMAGEM (Opcional, se não tiver global)
+// ==========================================
+private fun buildImageUrl(imageId: String?): String {
+    if (imageId.isNullOrBlank()) return ""
+    return if (imageId.startsWith("http")) imageId
+    else "https://res.cloudinary.com/dt2117/image/upload/$imageId" // Ajuste seu cloud name
 }
 
-@Composable
-fun TextoSucesso(texto: String, duracaoMillis: Long = 2000L, navController: NavHostController) {
-    var isVisible by remember { mutableStateOf(true) }
+// ==========================================
+// 2. VIEW MODEL & STATE
+// ==========================================
 
+data class ValidatorUiState(
+    val isValidating: Boolean = false,
+    val validationResult: ValidationResponseData? = null,
+    val error: String? = null
+)
 
-    LaunchedEffect(Unit) {
-        delay(duracaoMillis)
-        isVisible = false
-        navController.popBackStack()
-    }
+class QrCodeValidadorViewModel(
+    private val repository: ValidationRepository = ValidationRepository()
+) : ViewModel() {
 
-    AnimatedVisibility(
-        visible = isVisible,
-        exit = fadeOut()
-    ) {
-        Text(text = texto, style = MaterialTheme.typography.titleMedium,color = Color(0xFF00A12B),
-            modifier = Modifier
-                .background(
-                    color = Color.White, // 🔑
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .padding(5.dp)
+    private val _uiState = MutableStateFlow(ValidatorUiState())
+    val uiState = _uiState.asStateFlow()
+
+    fun validateCode(code: String, token: String?) {
+        if (token.isNullOrBlank()) return
+
+        // Bloqueia múltiplas chamadas simultâneas
+        if (_uiState.value.isValidating) return
+
+        _uiState.update { it.copy(isValidating = true, error = null, validationResult = null) }
+
+        repository.validateQrCode(
+            code = code,
+            token = token,
+            onSuccess = { result ->
+                _uiState.update { it.copy(isValidating = false, validationResult = result) }
+
+                // Reseta a tela após 3 segundos para permitir ler o próximo
+                viewModelScope.launch {
+                    delay(3000)
+                    resetState()
+                }
+            },
+            onError = { msg ->
+                _uiState.update { it.copy(isValidating = false, error = msg) }
+
+                // Reseta erro após 3 segundos
+                viewModelScope.launch {
+                    delay(3000)
+                    resetState()
+                }
+            }
         )
     }
 
-    // Se você não quiser animação, poderia usar apenas um `if`:
-    /*
-    if (isVisible) {
-        Text(text = texto)
+    fun resetState() {
+        _uiState.value = ValidatorUiState()
     }
-    */
+}
+
+// ==========================================
+// 3. TELA PRINCIPAL (UI)
+// ==========================================
+
+@Composable
+fun QrCodeValidadorScreen(
+    navController: NavHostController,
+    viewModel: QrCodeValidadorViewModel = viewModel { QrCodeValidadorViewModel() }
+) {
+    val authRepository = LocalAuthRepository.current
+    val authState by authRepository.authState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Estados do Scanner
+    var flashlightOn by remember { mutableStateOf(false) }
+    var openImagePicker by remember { mutableStateOf(false) }
+    var lastScannedCode by remember { mutableStateOf("") }
+
+    AdaptiveScreenContainer {
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            // --- 1. SCANNER DE FUNDO ---
+            if (isCameraSupported()) {
+                QrScanner(
+                    modifier = Modifier.fillMaxSize(),
+                    flashlightOn = flashlightOn,
+                    cameraLens = CameraLens.Back,
+                    openImagePicker = openImagePicker,
+                    onCompletion = { code ->
+                        // Lógica para evitar validação repetida do mesmo código instantaneamente
+                        if (!uiState.isValidating &&
+                            uiState.validationResult == null &&
+                            uiState.error == null &&
+                            code != lastScannedCode
+                        ) {
+                            lastScannedCode = code
+                            viewModel.validateCode(code, authState.token)
+
+                            // Limpa o cache do último código após 5 segundos
+                            // para permitir validar a mesma pessoa de novo se necessário
+                            // (mas previne o loop infinito do scanner lendo 30x por segundo)
+                        }
+                    },
+                    onFailure = { /* Ignora erros de leitura de frame */ },
+                    overlayShape = OverlayShape.Square,
+                    imagePickerHandler = { openImagePicker = it },
+
+                    )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Câmera não disponível neste dispositivo.")
+                }
+            }
+
+            // --- 2. HEADER (Botão Voltar) ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.TopCenter),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Voltar", tint = Color.White)
+                }
+            }
+
+            // --- 3. OVERLAY DE FEEDBACK (Resultados) ---
+
+            // LOADING
+            if (uiState.isValidating) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color.White)
+                }
+            }
+
+            // SUCESSO (Verde)
+            AnimatedVisibility(
+                visible = uiState.validationResult?.valid == true,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                val member = uiState.validationResult?.member
+                val user = member?.user
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), // Verde claro
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    modifier = Modifier.padding(32.dp).fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF43A047), modifier = Modifier.size(64.dp))
+                        Spacer(Modifier.height(16.dp))
+                        Text("Acesso Permitido!", style = MaterialTheme.typography.titleLarge, color = Color(0xFF1B5E20))
+
+                        if (user != null) {
+                            Spacer(Modifier.height(16.dp))
+                            AsyncImage(
+                                model = buildImageUrl(user.faceImageId),
+                                contentDescription = "Foto do usuário",
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(user.fullName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            Text(member.role, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+
+            // ERRO (Vermelho)
+            AnimatedVisibility(
+                visible = uiState.error != null || uiState.validationResult?.valid == false,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                val msg = uiState.error ?: uiState.validationResult?.message ?: "Erro desconhecido"
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)), // Vermelho claro
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    modifier = Modifier.padding(32.dp).fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Error, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(64.dp))
+                        Spacer(Modifier.height(16.dp))
+                        Text("Acesso Negado", style = MaterialTheme.typography.titleLarge, color = Color(0xFFB71C1C))
+                        Spacer(Modifier.height(8.dp))
+                        Text(msg, style = MaterialTheme.typography.bodyMedium, color = Color.Black)
+                    }
+                }
+            }
+        }
+    }
 }

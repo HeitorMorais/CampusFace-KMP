@@ -197,14 +197,18 @@ fun UnifiedHubList(
         if (activeHubs.isNotEmpty()) {
             items(activeHubs) { org ->
                 UnifiedCard(
-                    title = org.name, // Nome da organização
+                    title = org.name,
                     status = "Ativo",
-                    statusColor = Color(0xFF00A12B), // Verde
+                    statusColor = Color(0xFF00A12B),
                     isClickable = true,
                     onClick = {
-                        // Navega para QR Code (Você deve ajustar para passar o ID se sua rota suportar)
-                        // Ex: navController.navigate("qrcode/${org.id}")
-                        navController.navigate(if (isValidator) DashboardRoute.QrCodeValidador else DashboardRoute.QrCodeMembro)
+                        if (isValidator) {
+                            navController.navigate(DashboardRoute.QrCodeValidador)
+                        } else {
+                            navController.navigate(
+                                DashboardRoute.QrCodeMembro(organizationId = org.id)
+                            )
+                        }
                     }
                 )
             }
