@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +40,21 @@ import com.campusface.data.Repository.EntryRequestRepository
 import com.campusface.data.Repository.EntryRequest
 import com.campusface.data.Repository.OrganizationRepository
 import com.campusface.data.Model.Organization
+import com.campusface.data.Repository.ChangeRequestRepository
+import com.campusface.data.Repository.ChangeRequestDto
+
+// ==========================================
+// CONFIGURAÇÃO DE IMAGEM
+// ==========================================
+fun buildImageUrl(imageId: String?): String {
+    if (imageId.isNullOrBlank()) return ""
+    return if (imageId.startsWith("http")) {
+        imageId
+    } else {
+        // Ajuste conforme seu Cloud Name
+        "https://res.cloudinary.com/dt2117/image/upload/$imageId"
+    }
+}
 
 // ==========================================
 // 1. VIEW MODEL & STATE
@@ -48,14 +64,16 @@ data class HubDetailsUiState(
     val isLoading: Boolean = false,
     val hub: Organization? = null,
     val membros: List<OrganizationMember> = emptyList(),
-    val entryRequests: List<EntryRequest> = emptyList(), // Lista de solicitações
+    val entryRequests: List<EntryRequest> = emptyList(),
+    val changeRequests: List<ChangeRequestDto> = emptyList(), // Nova lista
     val error: String? = null
 )
 
 class HubDetailsViewModel(
     private val memberRepo: OrganizationMemberRepository = OrganizationMemberRepository(),
     private val entryRepo: EntryRequestRepository = EntryRequestRepository(),
-    private val orgRepo: OrganizationRepository = OrganizationRepository()
+    private val orgRepo: OrganizationRepository = OrganizationRepository(),
+    private val changeRepo: ChangeRequestRepository = ChangeRequestRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HubDetailsUiState())
@@ -75,7 +93,7 @@ class HubDetailsViewModel(
             onSuccess = { listaMembros ->
                 _uiState.update { it.copy(membros = listaMembros) }
 
-                // 2. Busca Detalhes do Hub (para pegar o HubCode)
+                // 2. Busca Detalhes do Hub
                 orgRepo.getMyHubs(
                     token = token,
                     onSuccess = { hubs ->
@@ -84,8 +102,12 @@ class HubDetailsViewModel(
                             currentHubCode = hubEncontrado.hubCode
                             _uiState.update { it.copy(hub = hubEncontrado) }
 
-                            // 3. Com o HubCode, busca as solicitações de entrada
+                            // 3. Busca Solicitações de Entrada (Entry)
                             fetchEntryRequests(hubEncontrado.hubCode, token)
+
+                            // 4. Busca Solicitações de Troca (Change)
+                            fetchChangeRequests(hubId, token)
+
                         } else {
                             _uiState.update { it.copy(isLoading = false, error = "Hub não encontrado") }
                         }
@@ -106,48 +128,55 @@ class HubDetailsViewModel(
                     it.copy(isLoading = false, entryRequests = requests)
                 }
             },
-            onError = {
-                // Se der erro só aqui, paramos o loading mas mantemos o resto
-                _uiState.update { it.copy(isLoading = false) }
-            }
+            onError = { _uiState.update { it.copy(isLoading = false) } }
         )
     }
 
-    fun aprovarSolicitacao(requestId: String, token: String) {
-        if (token.isEmpty()) return
-
-        // Remove visualmente (otimista)
-        val backup = _uiState.value.entryRequests
-        _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
-
-        entryRepo.approveRequest(
-            requestId = requestId,
+    private fun fetchChangeRequests(hubId: String, token: String) {
+        changeRepo.listPendingChangeRequests(
+            organizationId = hubId,
             token = token,
-            onSuccess = {
-                // Opcional: Recarregar membros pois entrou gente nova
-                // fetchHubDetails(...)
+            onSuccess = { requests ->
+                _uiState.update {
+                    it.copy(isLoading = false, changeRequests = requests)
+                }
             },
-            onError = { msg ->
-                // Rollback
-                _uiState.update { it.copy(entryRequests = backup, error = "Erro: $msg") }
-            }
+            onError = { _uiState.update { it.copy(isLoading = false) } }
         )
     }
 
-    fun recusarSolicitacao(requestId: String, token: String) {
+    // --- AÇÕES ENTRY REQUEST ---
+    fun aprovarEntry(requestId: String, token: String) {
         if (token.isEmpty()) return
-
         val backup = _uiState.value.entryRequests
         _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
 
-        entryRepo.rejectRequest(
-            requestId = requestId,
-            token = token,
-            onSuccess = {},
-            onError = { msg ->
-                _uiState.update { it.copy(entryRequests = backup, error = "Erro: $msg") }
-            }
-        )
+        entryRepo.approveRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(entryRequests = backup, error = msg) } })
+    }
+
+    fun recusarEntry(requestId: String, token: String) {
+        if (token.isEmpty()) return
+        val backup = _uiState.value.entryRequests
+        _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
+
+        entryRepo.rejectRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(entryRequests = backup, error = msg) } })
+    }
+
+    // --- AÇÕES CHANGE REQUEST ---
+    fun aprovarChange(requestId: String, token: String) {
+        if (token.isEmpty()) return
+        val backup = _uiState.value.changeRequests
+        _uiState.update { it.copy(changeRequests = it.changeRequests.filter { r -> r.id != requestId }) }
+
+        changeRepo.approveChangeRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(changeRequests = backup, error = msg) } })
+    }
+
+    fun recusarChange(requestId: String, token: String) {
+        if (token.isEmpty()) return
+        val backup = _uiState.value.changeRequests
+        _uiState.update { it.copy(changeRequests = it.changeRequests.filter { r -> r.id != requestId }) }
+
+        changeRepo.rejectChangeRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(changeRequests = backup, error = msg) } })
     }
 }
 
@@ -175,11 +204,9 @@ fun DetalhesHubScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // --- HEADER ---
+            // Header
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
@@ -193,7 +220,7 @@ fun DetalhesHubScreen(
                 )
             }
 
-            // --- LOADING / ERRO ---
+            // Conteúdo
             if (uiState.isLoading && uiState.hub == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -203,12 +230,14 @@ fun DetalhesHubScreen(
                     Text("Erro: ${uiState.error}", color = MaterialTheme.colorScheme.error)
                 }
             } else {
-                // --- CONTEÚDO DAS TABS ---
                 HubTabsContent(
                     membros = uiState.membros,
                     solicitacoes = uiState.entryRequests,
-                    onAprovar = { id -> viewModel.aprovarSolicitacao(id, authState.token ?: "") },
-                    onRecusar = { id -> viewModel.recusarSolicitacao(id, authState.token ?: "") }
+                    changes = uiState.changeRequests,
+                    onAprovarEntry = { id -> viewModel.aprovarEntry(id, authState.token ?: "") },
+                    onRecusarEntry = { id -> viewModel.recusarEntry(id, authState.token ?: "") },
+                    onAprovarChange = { id -> viewModel.aprovarChange(id, authState.token ?: "") },
+                    onRecusarChange = { id -> viewModel.recusarChange(id, authState.token ?: "") }
                 )
             }
         }
@@ -219,25 +248,25 @@ fun DetalhesHubScreen(
 fun HubTabsContent(
     membros: List<OrganizationMember>,
     solicitacoes: List<EntryRequest>,
-    onAprovar: (String) -> Unit,
-    onRecusar: (String) -> Unit
+    changes: List<ChangeRequestDto>,
+    onAprovarEntry: (String) -> Unit,
+    onRecusarEntry: (String) -> Unit,
+    onAprovarChange: (String) -> Unit,
+    onRecusarChange: (String) -> Unit
 ) {
-    val tabs = listOf("Membros", "Solicitações", "Atualizações")
+    val tabs = listOf("Membros", "Entrada", "Fotos")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     Column {
-        PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
+        PrimaryTabRow(selectedTabIndex = selectedTabIndex, containerColor = Color.Transparent) {
             tabs.forEachIndexed { index, title ->
                 Tab(
                     selected = selectedTabIndex == index,
                     onClick = { selectedTabIndex = index },
                     text = {
-                        // Mostra contador na tab de solicitações se houver pendências
-                        if (index == 1 && solicitacoes.isNotEmpty()) {
-                            Text("$title (${solicitacoes.size})")
-                        } else {
-                            Text(title)
-                        }
+                        if (index == 1 && solicitacoes.isNotEmpty()) Text("$title (${solicitacoes.size})")
+                        else if (index == 2 && changes.isNotEmpty()) Text("$title (${changes.size})")
+                        else Text(title)
                     }
                 )
             }
@@ -246,10 +275,8 @@ fun HubTabsContent(
         Crossfade(targetState = selectedTabIndex, label = "Tabs") { index ->
             when (index) {
                 0 -> TabContentMembros(membros)
-                1 -> TabContentSolicitacaoEntrada(solicitacoes, onAprovar, onRecusar)
-                2 -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Sem atualizações pendentes", color = Color.Gray)
-                }
+                1 -> TabContentSolicitacaoEntrada(solicitacoes, onAprovarEntry, onRecusarEntry)
+                2 -> TabContentChangeRequests(changes, onAprovarChange, onRecusarChange)
             }
         }
     }
@@ -259,19 +286,18 @@ fun HubTabsContent(
 // 3. SUB-COMPONENTS (TABS)
 // ==========================================
 
-// --- TAB MEMBROS ---
+// --- TAB 1: MEMBROS ---
 @Composable
 fun TabContentMembros(listaMembros: List<OrganizationMember>) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         if (listaMembros.isEmpty()) {
-            item {
-                Text("Nenhum membro encontrado.", modifier = Modifier.padding(16.dp))
-            }
+            item { Text("Nenhum membro encontrado.", modifier = Modifier.padding(16.dp)) }
         } else {
             items(listaMembros) { membro ->
                 MembroCard(
                     nome = membro.user.fullName,
-                    role = membro.role
+                    role = membro.role,
+                    foto = membro.user.faceImageId
                 )
             }
         }
@@ -279,15 +305,17 @@ fun TabContentMembros(listaMembros: List<OrganizationMember>) {
 }
 
 @Composable
-fun MembroCard(nome: String, role: String) {
+fun MembroCard(nome: String, role: String, foto: String?) {
     ElevatedCard(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = nome, style = MaterialTheme.typography.bodyMedium)
+            PhotoCircle(url = buildImageUrl(foto))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = nome, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                 Text(text = role, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             }
             IconButton(onClick = { /* Menu */ }) {
@@ -297,7 +325,7 @@ fun MembroCard(nome: String, role: String) {
     }
 }
 
-// --- TAB SOLICITAÇÕES ---
+// --- TAB 2: SOLICITAÇÕES DE ENTRADA (Lógica Mantida) ---
 @Composable
 fun TabContentSolicitacaoEntrada(
     listaSolicitacoes: List<EntryRequest>,
@@ -306,18 +334,10 @@ fun TabContentSolicitacaoEntrada(
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         if (listaSolicitacoes.isEmpty()) {
-            item {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Nenhuma solicitação pendente.", color = Color.Gray)
-                }
-            }
+            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { Text("Nenhuma solicitação de entrada.", color = Color.Gray) } }
         } else {
             items(listaSolicitacoes) { solicitacao ->
-                SolicitacaoCard(
-                    solicitacao = solicitacao,
-                    onAceitar = { onAceitar(solicitacao.id) },
-                    onRecusar = { onRecusar(solicitacao.id) }
-                )
+                SolicitacaoCard(solicitacao=solicitacao, { onAceitar(solicitacao.id) }, {onRecusar(solicitacao.id)})
                 HorizontalDivider()
             }
         }
@@ -325,64 +345,78 @@ fun TabContentSolicitacaoEntrada(
 }
 
 @Composable
-fun SolicitacaoCard(
-    solicitacao: EntryRequest,
-    onAceitar: () -> Unit,
-    onRecusar: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(Color.Transparent),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
-            ) {
-                // Tenta pegar a URL do Cloudinary ou placeholder
-                val imageUrl = solicitacao.user.faceImageId ?: ""
-
-                PhotoCircle(url = imageUrl) // Usa o helper
-
+fun SolicitacaoCard(solicitacao: EntryRequest, onAceitar: () -> Unit, onRecusar: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), colors = CardDefaults.cardColors(Color.Transparent)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PhotoCircle(url = buildImageUrl(solicitacao.user.faceImageId))
                 Spacer(modifier = Modifier.width(16.dp))
-
                 Column {
-                    Text(
-                        text = solicitacao.user.fullName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Cargo: ${solicitacao.role}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    solicitacao.user.document?.let {
-                        Text(text = it, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    }
+                    Text(text = solicitacao.user.fullName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Text(text = "Cargo: ${solicitacao.role}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    solicitacao.user.document?.let { Text(text = it, style = MaterialTheme.typography.labelSmall, color = Color.Gray) }
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                OutlinedButton(onClick = onRecusar, colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Recusar") }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = onAceitar, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A12B))) { Text("Aceitar") }
+            }
+        }
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = onRecusar,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    modifier = Modifier.padding(end = 8.dp)
-                ) { Text("Recusar") }
+// --- TAB 3: ATUALIZAÇÕES DE FOTO (Change Request) ---
+@Composable
+fun TabContentChangeRequests(
+    lista: List<ChangeRequestDto>,
+    onAprovar: (String) -> Unit,
+    onRecusar: (String) -> Unit
+) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        if (lista.isEmpty()) {
+            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { Text("Nenhuma solicitação de troca de foto.", color = Color.Gray) } }
+        } else {
+            items(lista) { item ->
+                ChangeRequestCard(request = item,
+                    // CORREÇÃO: Passar o ID dentro da lambda
+                    onAprovar = { onAprovar(item.id) },
+                    onRecusar = { onRecusar(item.id) })
+                HorizontalDivider()
+            }
+        }
+    }
+}
 
-                Button(
-                    onClick = onAceitar,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A12B)),
-                ) { Text("Aceitar") }
+@Composable
+fun ChangeRequestCard(request: ChangeRequestDto, onAprovar: () -> Unit, onRecusar: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), colors = CardDefaults.cardColors(Color.Transparent)) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(text = "${request.userFullName} deseja atualizar a foto:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                // Foto Atual
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Atual", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    PhotoCircle(url = buildImageUrl(request.currentFaceUrl))
+                }
+
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, "Mudar", modifier = Modifier.padding(horizontal = 16.dp), tint = Color.Gray)
+
+                // Foto Nova
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Nova", style = MaterialTheme.typography.labelSmall, color = Color(0xFF00A12B))
+                    PhotoCircle(url = buildImageUrl(request.newFaceUrl))
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                OutlinedButton(onClick = onRecusar, colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Recusar") }
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = onAprovar, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A12B))) { Text("Aprovar") }
             }
         }
     }
@@ -391,11 +425,11 @@ fun SolicitacaoCard(
 @Composable
 fun PhotoCircle(tamanho: Dp = 60.dp, url: String) {
     AsyncImage(
-        modifier = Modifier.size(tamanho).padding(4.dp).clip(CircleShape).background(Color.LightGray),
+        modifier = Modifier.size(tamanho).clip(CircleShape).background(Color(0xFFE0E0E0)),
         model = url,
-        contentDescription = null,
-        placeholder = ColorPainter(Color.LightGray),
+        contentDescription = "Foto",
+        contentScale = ContentScale.Crop,
         error = ColorPainter(Color.Gray),
-        contentScale = ContentScale.Crop
+        placeholder = ColorPainter(Color.LightGray)
     )
 }

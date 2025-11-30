@@ -1,19 +1,28 @@
 package com.campusface.data.Repository
 
+import com.campusface.data.BASE_URL
+import com.campusface.data.Model.ApiResponse
+import com.campusface.data.Model.User
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
-import io.ktor.client.plugins.contentnegotiation.*  // 👈 ADICIONA
-import io.ktor.serialization.kotlinx.json.*  // 👈 ADICIONA
 import io.ktor.http.*
-import com.campusface.data.Model.User
-import com.campusface.data.Model.ApiResponse
-import com.campusface.data.BASE_URL
-import kotlinx.serialization.json.Json  // 👈 ADICIONA
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
-class UserRepository(private val token: String) {
+// DTO para enviar os dados de texto
+@Serializable
+data class UserUpdateBody(
+    val fullName: String,
+    val email: String,
+    val document: String
+)
+
+class UserRepository {
 
     private val client = HttpClient {
         install(ContentNegotiation) {
@@ -25,27 +34,31 @@ class UserRepository(private val token: String) {
         }
     }
 
-    suspend fun getUser(id: String): Result<User> = runCatching {
-        val httpResponse: HttpResponse = client.get("${BASE_URL}/users/$id") {
+    // --- BUSCAR DADOS (GET) ---
+    suspend fun getUser(id: String, token: String): Result<User> = runCatching {
+        val httpResponse = client.get("${BASE_URL}/users/$id") {
             header(HttpHeaders.Authorization, "Bearer $token")
             header("ngrok-skip-browser-warning", "true")
         }
 
-        val rawBody = httpResponse.bodyAsText()
-        println("🔍 DEBUG: Status Code: ${httpResponse.status}")
-        println("🔍 DEBUG: Resposta da API: $rawBody")
+        if (httpResponse.status.value >= 400) throw Exception("Erro ${httpResponse.status.value}")
 
-        val response: ApiResponse<User> = httpResponse.body()
-        response.data ?: throw Exception("Usuário não encontrado")
+        val apiResponse = httpResponse.body<ApiResponse<User>>()
+        if (apiResponse.success && apiResponse.data != null) apiResponse.data
+        else throw Exception(apiResponse.message)
     }
 
-    suspend fun updateProfileImage(id: String, imageBytes: ByteArray): Result<Unit> = runCatching {
-        client.submitFormWithBinaryData(
-            url = "${BASE_URL}/users/$id/image",
+    // --- ATUALIZAR FOTO (PATCH) ---
+    suspend fun updateProfileImage(
+        imageBytes: ByteArray,
+        token: String
+    ): Result<User> = runCatching {
+        val httpResponse = client.submitFormWithBinaryData(
+            url = "${BASE_URL}/users/image",
             formData = formData {
                 append("image", imageBytes, Headers.build {
                     append(HttpHeaders.ContentType, "image/jpeg")
-                    append(HttpHeaders.ContentDisposition, "filename=profile.jpg")
+                    append(HttpHeaders.ContentDisposition, "filename=\"profile.jpg\"")
                 })
             }
         ) {
@@ -53,12 +66,33 @@ class UserRepository(private val token: String) {
             header(HttpHeaders.Authorization, "Bearer $token")
             header("ngrok-skip-browser-warning", "true")
         }
+
+        if (httpResponse.status.value >= 400) throw Exception("Erro upload: ${httpResponse.status.value}")
+
+        val apiResponse = httpResponse.body<ApiResponse<User>>()
+        if (apiResponse.success && apiResponse.data != null) apiResponse.data
+        else throw Exception(apiResponse.message)
     }
 
-    suspend fun deleteUser(id: String): Result<Unit> = runCatching {
-        client.delete("${BASE_URL}/users/$id") {
+    // --- ATUALIZAR DADOS DE TEXTO (PUT) - NOVO ---
+    suspend fun updateUserData(
+        fullName: String,
+        email: String,
+        document: String,
+        token: String
+    ): Result<User> = runCatching {
+        // Verifica se seu backend usa PUT ou PATCH para dados. Assumindo PUT conforme Swagger.
+        val httpResponse = client.put("${BASE_URL}/users") {
             header(HttpHeaders.Authorization, "Bearer $token")
             header("ngrok-skip-browser-warning", "true")
+            contentType(ContentType.Application.Json)
+            setBody(UserUpdateBody(fullName, email, document))
         }
+
+        if (httpResponse.status.value >= 400) throw Exception("Erro ${httpResponse.status.value}")
+
+        val apiResponse = httpResponse.body<ApiResponse<User>>()
+        if (apiResponse.success && apiResponse.data != null) apiResponse.data
+        else throw Exception(apiResponse.message)
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +33,7 @@ import com.campusface.data.Repository.EntryRequestRepository
 import com.campusface.data.Repository.OrganizationRepository
 import com.campusface.data.Repository.EntryRequest
 import com.campusface.data.Model.Organization
-import com.campusface.utils.AppEventBus // Certifique-se de que este arquivo existe
+import com.campusface.utils.AppEventBus
 
 // ==========================================
 // 1. VIEW MODEL & STATE
@@ -212,7 +213,7 @@ fun UnifiedHubList(
             }
         }
 
-        // 1. HUBs ATIVOS (Vindos do OrganizationRepository)
+        // 1. HUBs ATIVOS (Cartão Verde com Menu)
         if (activeHubs.isNotEmpty()) {
             items(activeHubs) { org ->
                 UnifiedCard(
@@ -222,19 +223,22 @@ fun UnifiedHubList(
                     statusColor = Color(0xFF00A12B), // Verde
                     isClickable = true,
                     onClick = {
-                        // Se for membro, vai para a tela de QR Code passando o ID
+                        // Se for validador vai pro scanner, se for membro vai pro seu QR Code
                         if (isValidator) {
                             navController.navigate(DashboardRoute.QrCodeValidador)
                         } else {
                             navController.navigate(DashboardRoute.QrCodeMembro(organizationId = org.id))
                         }
+                    },
+                    // FEATURE NOVA: Menu para atualizar foto
+                    onChangePhotoClick = {
+                        navController.navigate(DashboardRoute.ChangeRequest(organizationId = org.id))
                     }
                 )
             }
         }
 
-        // 2. SOLICITAÇÕES (Vindas do EntryRequestRepository)
-        // Filtramos APPROVED para não duplicar visualmente (pois já devem estar na lista de ativos acima)
+        // 2. SOLICITAÇÕES (Cartão Amarelo/Vermelho sem Menu)
         val visibleRequests = pendingRequests.filter { it.status != "APPROVED" }
 
         if (visibleRequests.isNotEmpty()) {
@@ -251,7 +255,8 @@ fun UnifiedHubList(
                     status = text,
                     statusColor = color,
                     isClickable = false, // Pendente não gera QR Code
-                    onClick = {}
+                    onClick = {},
+                    onChangePhotoClick = null // Pendente não pode mudar foto ainda
                 )
             }
         }
@@ -278,8 +283,11 @@ fun UnifiedCard(
     status: String,
     statusColor: Color,
     isClickable: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onChangePhotoClick: (() -> Unit)? = null
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -299,7 +307,7 @@ fun UnifiedCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
@@ -318,6 +326,7 @@ fun UnifiedCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Indicador de Status
                 Box(
                     modifier = Modifier
                         .size(10.dp)
@@ -328,6 +337,27 @@ fun UnifiedCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // MENU DE OPÇÕES (3 Pontos)
+                if (onChangePhotoClick != null) {
+                    Box {
+                        IconButton(onClick = { expanded = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Opções")
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Atualizar Foto") },
+                                onClick = {
+                                    expanded = false
+                                    onChangePhotoClick()
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }

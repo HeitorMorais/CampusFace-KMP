@@ -22,6 +22,7 @@ import com.campusface.screens.membroScreen.MembroScreen
 import com.campusface.screens.membroScreen.AdicionarMembroScreen
 import com.campusface.screens.administrarScreen.AdministrarScreen
 import com.campusface.screens.administrarScreen.DetalhesHubScreen
+import com.campusface.screens.membroScreen.ChangeRequestScreen
 import com.campusface.screens.membroScreen.QrCodeMembroScreen
 import com.campusface.screens.validarScreen.ValidarScreen
 import com.campusface.screens.validarScreen.QrCodeValidadorScreen
@@ -108,14 +109,21 @@ fun DashboardContentNavHost(
             )
         }
 
-        // --- CORREÇÃO AQUI ---
         composable<DashboardRoute.QrCodeMembro> { backStackEntry ->
-            // Extrai o ID da organização passado na navegação
             val rota = backStackEntry.toRoute<DashboardRoute.QrCodeMembro>()
 
             QrCodeMembroScreen(
                 navController = navController,
-                organizationId = rota.organizationId // <--- Passa o ID para a tela
+                organizationId = rota.organizationId
+            )
+        }
+
+        composable<DashboardRoute.ChangeRequest> { backStackEntry ->
+            val rota = backStackEntry.toRoute<DashboardRoute.ChangeRequest>()
+
+            ChangeRequestScreen(
+                navController = navController,
+                organizationId = rota.organizationId
             )
         }
 
