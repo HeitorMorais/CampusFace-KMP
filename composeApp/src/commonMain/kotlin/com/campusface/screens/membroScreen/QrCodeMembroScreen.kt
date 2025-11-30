@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,10 +23,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// --- IMPORTS CRÍTICOS DE DATA (USAR APENAS KOTLINX.DATETIME) ---
+
 import kotlinx.datetime.Instant
 
-// Imports do seu projeto
+
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.data.Repository.GeneratedCodeData
 import com.campusface.data.Repository.LocalAuthRepository
@@ -33,9 +34,8 @@ import com.campusface.data.Repository.ValidationRepository
 import qrgenerator.qrkitpainter.rememberQrKitPainter
 import kotlin.time.ExperimentalTime
 
-// ==========================================
-// 1. VIEW MODEL & STATE
-// ==========================================
+
+import androidx.compose.foundation.layout.BoxWithConstraints
 
 data class QrCodeUiState(
     val isLoading: Boolean = true,
@@ -57,7 +57,6 @@ class QrCodeViewModel(
             return
         }
 
-        // Se já carregou, não carrega de novo (mantém o código na tela)
         if (_uiState.value.codeData != null) return
 
         _uiState.update { it.copy(isLoading = true, error = null) }
@@ -79,26 +78,24 @@ class QrCodeViewModel(
     private fun startCountdown(expirationIsoString: String) {
         viewModelScope.launch {
             try {
-                // 1. Converte a string ISO 8601 da API para Segundos (Long)
                 val expirationSeconds = Instant.parse(expirationIsoString).epochSeconds
 
                 while (true) {
-                    // 2. Pega a hora atual do sistema em Segundos (Long)
-                    // Usando kotlinx.datetime.Clock para consistência
                     val nowSeconds = kotlin.time.Clock.System.now().epochSeconds
-
-                    // 3. Subtração simples (Long - Long)
                     val remaining = expirationSeconds - nowSeconds
 
                     if (remaining <= 0) {
                         _uiState.update {
-                            it.copy(secondsRemaining = 0, error = "Código expirado. Volte e gere novamente.")
+                            it.copy(
+                                secondsRemaining = 0,
+                                error = "Código expirado. Volte e gere novamente."
+                            )
                         }
                         break
                     }
 
                     _uiState.update { it.copy(secondsRemaining = remaining) }
-                    delay(1000) // Atualiza a cada 1 segundo
+                    delay(1000)
                 }
             } catch (e: Exception) {
                 println("Erro ao iniciar timer: ${e.message}")
@@ -107,14 +104,10 @@ class QrCodeViewModel(
     }
 }
 
-// ==========================================
-// 2. TELA PRINCIPAL (UI)
-// ==========================================
 
 @Composable
 fun QrCodeMembroScreen(
     navController: NavHostController,
-    // O ID deve vir da navegação. Se estiver vazio, vai dar erro na API.
     organizationId: String,
     viewModel: QrCodeViewModel = viewModel { QrCodeViewModel() }
 ) {
@@ -122,7 +115,6 @@ fun QrCodeMembroScreen(
     val authState by authRepository.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    // Dispara a chamada assim que entra na tela
     LaunchedEffect(Unit) {
         viewModel.loadQrCode(organizationId, authState.token)
     }
@@ -134,7 +126,6 @@ fun QrCodeMembroScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -150,55 +141,92 @@ fun QrCodeMembroScreen(
             Spacer(Modifier.height(20.dp))
 
             when {
-                // Estado: Carregando
                 uiState.isLoading -> {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(16.dp))
                     Text("Gerando código de acesso...", style = MaterialTheme.typography.bodyMedium)
                 }
 
-                // Estado: Erro
                 uiState.error != null -> {
-                    Icon(Icons.Default.Refresh, "Erro", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
+                    Icon(
+                        Icons.Default.Refresh,
+                        "Erro",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(48.dp)
+                    )
                     Spacer(Modifier.height(16.dp))
+
                     Text(
                         text = uiState.error!!,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.padding(16.dp)
                     )
-                    Button(onClick = { navController.popBackStack() }, modifier = Modifier.padding(top = 16.dp)) {
+
+                    Button(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
                         Text("Voltar")
                     }
                 }
 
-                // Estado: Sucesso
                 uiState.codeData != null -> {
                     val code = uiState.codeData!!.code
-
-                    // Gera o desenho do QR
                     val painter = rememberQrKitPainter(data = code)
 
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.padding(24.dp)
+
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+
                     ) {
-                        Column(
-                            modifier = Modifier.padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+
+                        val availableWidth = this.maxWidth
+
+
+                        val desktopThreshold = 600.dp
+
+
+                        val desktopSize = 280.dp
+
+
+                        val qrSize: androidx.compose.ui.unit.Dp? = if (availableWidth > desktopThreshold) {
+
+                            val candidate = (availableWidth * 0.5f)
+                            if (candidate < desktopSize) candidate else desktopSize
+                        } else {
+                            null
+                        }
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.padding(24.dp)
                         ) {
-                            Image(
-                                painter = painter,
-                                contentDescription = "QR Code",
-                                modifier = Modifier.fillMaxWidth().aspectRatio(1f)
-                            )
+                            Column(
+                                modifier = Modifier.padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                if (qrSize != null) {
+                                    Image(
+                                        painter = painter,
+                                        contentDescription = "QR Code",
+                                        modifier = Modifier.size(qrSize)
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painter,
+                                        contentDescription = "QR Code",
+                                        modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    // Exibe o código numérico
                     Text(
                         text = code.chunked(3).joinToString(" "),
                         style = MaterialTheme.typography.headlineLarge,
@@ -208,15 +236,19 @@ fun QrCodeMembroScreen(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // Contador
                     if (uiState.secondsRemaining > 0) {
                         Text(
                             "Expira em ${uiState.secondsRemaining} segundos",
                             style = MaterialTheme.typography.labelLarge,
-                            color = if (uiState.secondsRemaining < 10) Color.Red else MaterialTheme.colorScheme.onBackground
+                            color = if (uiState.secondsRemaining < 10) Color.Red
+                            else MaterialTheme.colorScheme.onBackground
                         )
                     } else {
-                        Text("Código Expirado", style = MaterialTheme.typography.labelLarge, color = Color.Red)
+                        Text(
+                            "Código Expirado",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.Red
+                        )
                     }
                 }
             }

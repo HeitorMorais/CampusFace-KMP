@@ -37,9 +37,6 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.readBytes
 
-// ==========================================
-// 1. VIEW MODEL & STATE
-// ==========================================
 
 data class ChangeRequestUiState(
     val isLoading: Boolean = false,
@@ -72,8 +69,7 @@ class ChangeRequestViewModel(
             imageBytes = imageBytes,
             token = token,
             onSuccess = {
-                // Emite evento para que outras telas saibam que algo mudou (opcional)
-                // viewModelScope.launch { AppEventBus.emitRefresh() }
+
 
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
             },
@@ -88,9 +84,6 @@ class ChangeRequestViewModel(
     }
 }
 
-// ==========================================
-// 2. TELA PRINCIPAL (UI)
-// ==========================================
 
 @Composable
 fun ChangeRequestScreen(
@@ -98,20 +91,20 @@ fun ChangeRequestScreen(
     organizationId: String, // ID da organização vindo da rota
     viewModel: ChangeRequestViewModel = viewModel { ChangeRequestViewModel() }
 ) {
-    // 1. Contexto de Autenticação
+
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
 
-    // 2. Estado da Tela
+
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // 3. Estado da Imagem
+
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var selectedImagePreview by remember { mutableStateOf<Any?>(null) }
 
-    // 4. File Picker (Galeria)
+
     val launcher = rememberFilePickerLauncher(
         type = FileKitType.Image,
         title = "Selecione sua nova foto"
@@ -124,7 +117,7 @@ fun ChangeRequestScreen(
         }
     }
 
-    // 5. Efeito: Sucesso
+
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             snackbarHostState.showSnackbar("Solicitação enviada com sucesso!")
@@ -132,7 +125,7 @@ fun ChangeRequestScreen(
             viewModel.resetState()
         }
     }
-    // 6. Efeito: Erro
+
     LaunchedEffect(uiState.error) {
 
         uiState.error?.let { error ->
@@ -156,7 +149,7 @@ fun ChangeRequestScreen(
                 verticalArrangement = Arrangement.Top
             ) {
 
-                // --- Header ---
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -170,7 +163,7 @@ fun ChangeRequestScreen(
 
                 Spacer(Modifier.height(40.dp))
 
-                // --- Seletor de Foto (Avatar) ---
+
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -215,7 +208,7 @@ fun ChangeRequestScreen(
 
                 Spacer(Modifier.height(40.dp))
 
-                // --- Botão de Enviar ---
+
                 Button(
                     onClick = {
                         viewModel.sendRequest(organizationId, imageBytes, authState.token)

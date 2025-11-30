@@ -10,7 +10,7 @@ import kotlinx.serialization.json.Json
 
 object HttpClientProvider {
 
-    // Cliente sem autenticação (para login/registro)
+    // Cliente sem autenticação
     val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -21,7 +21,7 @@ object HttpClientProvider {
         }
     }
 
-    // Cliente com autenticação (para endpoints protegidos)
+    // Cliente com autenticação
     fun authenticatedClient(token: String) = HttpClient {
         install(ContentNegotiation) {
             json(Json {

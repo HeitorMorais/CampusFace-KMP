@@ -24,168 +24,195 @@ import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.navigation.AppRoute
 import org.jetbrains.compose.resources.painterResource
 
-
 @Composable
-fun LoginScreen(navController : NavHostController) {
-    AdaptiveScreenContainer(){
-    val authRepository = LocalAuthRepository.current
-    val authState by authRepository.authState.collectAsState()
+fun LoginScreen(navController: NavHostController) {
+    AdaptiveScreenContainer {
 
-    var username by remember { mutableStateOf("teste") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+        val authRepository = LocalAuthRepository.current
+        val authState by authRepository.authState.collectAsState()
+
+        var email by remember { mutableStateOf("") }
+        var password by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf("") }
+
+        var emailError by remember { mutableStateOf(false) }
+        var passwordError by remember { mutableStateOf(false) }
+
+        val isLoading = authState.isLoading
 
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.widthIn(max = 420.dp)
+        LaunchedEffect(authState.error) {
+            if (authState.error != null) {
+                errorMessage = authState.error!!
+            }
+        }
+
+        fun validateAndLogin() {
+            emailError = email.isBlank()
+            passwordError = password.isBlank()
+
+            if (emailError || passwordError) {
+                errorMessage = "Preencha todos os campos."
+                return
+            }
+
+            errorMessage = ""
+            authRepository.login(email, password)
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center
         ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.widthIn(max = 420.dp)
+            ) {
 
+                Image(
+                    painter = painterResource(Res.drawable.logo),
+                    contentDescription = "Ícone",
+                    modifier = Modifier.size(90.dp)
+                )
 
-            Image(
-                painter = painterResource(Res.drawable.logo),
-                contentDescription = "Ícone",
-                modifier = Modifier.size(90.dp)
-            )
+                Spacer(Modifier.height(24.dp))
 
-            Spacer(Modifier.height(24.dp))
+                Text(
+                    text = "Entre agora",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1A1A1A)
+                )
 
-            Text(
-                text = "Entre agora",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A1A1A)
-            )
+                Spacer(Modifier.height(8.dp))
 
-            Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Entre com sua conta do hub",
+                    fontSize = 15.sp,
+                    color = Color(0xFF6B7280),
+                    textAlign = TextAlign.Center
+                )
 
-            Text(
-                text = "Entre com sua conta do hub",
-                fontSize = 15.sp,
-                color = Color(0xFF6B7280),
-                textAlign = TextAlign.Center
-            )
+                Spacer(Modifier.height(32.dp))
 
-            Spacer(Modifier.height(32.dp))
+                if (errorMessage.isNotEmpty()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEE2E2)
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            color = Color(0xFFDC2626),
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(12.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
 
-            if (errorMessage.isNotEmpty()) {
-                Surface(
+                // Email
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        emailError = false
+                    },
+                    placeholder = { Text("Digite seu e-mail", color = Color(0xFFBDBDBD)) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFEE2E2)
+                    isError = emailError,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                        errorBorderColor = Color(0xFFDC2626),
+                        focusedBorderColor = Color.Black,
+                        cursorColor = Color.Black
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                // Senha
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        passwordError = false
+                    },
+                    placeholder = { Text("Digite sua senha", color = Color(0xFFBDBDBD)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    isError = passwordError,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                        errorBorderColor = Color(0xFFDC2626),
+                        focusedBorderColor = Color.Black,
+                        cursorColor = Color.Black
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                // Botão Entrar
+                Button(
+                    onClick = { validateAndLogin() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        disabledContainerColor = Color(0xFF1A1A1A).copy(alpha = 0.4f)
+                    )
                 ) {
                     Text(
-                        text = errorMessage,
-                        color = Color(0xFFDC2626),
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(12.dp),
-                        textAlign = TextAlign.Center
+                        text = if (isLoading) "Entrando..." else "Entrar",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Criar conta
+                OutlinedButton(
+                    onClick = { navController.navigate(AppRoute.Register) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.Black
+                    ),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        width = 1.dp,
+                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE5E7EB))
+                    )
+                ) {
+                    Text(
+                        text = "Não tenho uma conta",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF6B7280)
                     )
                 }
             }
-
-            //email
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                placeholder = { Text("Digite seu e-mail", color = Color(0xFFBDBDBD)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color(0xFFE5E7EB),
-                    focusedBorderColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    cursorColor = Color.Black
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true
-            )
-
-            Spacer(Modifier.height(14.dp))
-
-            //senha
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                placeholder = { Text("Digite sua senha", color = Color(0xFFBDBDBD)) },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color(0xFFE5E7EB),
-                    focusedBorderColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    cursorColor = Color.Black
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            //entrar
-            Button(
-                onClick = { authRepository.login(email, password)},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Black,
-                    disabledContainerColor = Color(0xFF1A1A1A).copy(alpha = 0.4f)
-                )
-            ) {
-                Text(
-                    text = if (isLoading) "Entrando..." else "Entrar",
-                    fontSize = 16.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            //criar conta
-            OutlinedButton(
-                onClick = {navController.navigate(AppRoute.Register)},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.Black
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp,
-                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE5E7EB))
-                )
-            ) {
-                Text(
-                    text = "Não tenho uma conta",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF6B7280)
-                )
-                authState.user?.let { user ->
-                    Text("Logado como: ${user.email}")
-                }
-            }
         }
-    }
     }
 }

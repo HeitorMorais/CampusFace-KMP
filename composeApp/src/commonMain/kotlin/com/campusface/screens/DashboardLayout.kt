@@ -75,13 +75,13 @@ fun DashboardContentNavHost(
         }
 
         composable<DashboardRoute.AdicionarMembro> { backStackEntry ->
-            // 1. Extrai os dados da rota
+
             val rota = backStackEntry.toRoute<DashboardRoute.AdicionarMembro>()
 
-            // 2. Passa para a tela
+
             AdicionarMembroScreen(
                 navController = navController,
-                targetRole = rota.role // "MEMBER" ou "VALIDATOR"
+                targetRole = rota.role
             )
         }
 
@@ -131,7 +131,7 @@ fun DashboardContentNavHost(
             QrCodeValidadorScreen(navController = navController)
         }
 
-        // ... outras rotas ...
+
 
         composable<DashboardRoute.Sair> {
             val authRepository = com.campusface.data.Repository.LocalAuthRepository.current

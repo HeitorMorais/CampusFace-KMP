@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// --- NOVO: Modelo de resposta para quando a API retorna uma LISTA ---
+
 
 @Serializable
 data class OrganizationUpdateBody(
@@ -44,7 +44,7 @@ class OrganizationRepository {
         }
     }
 
-    // --- Função Existente: Criar Organização ---
+
     fun createOrganization(
         name: String,
         description: String,
@@ -94,13 +94,13 @@ class OrganizationRepository {
         }
     }
 
-    // --- NOVO: Listar Meus Hubs (GET) ---
+
     fun getMyHubs(
         token: String?,
         onSuccess: (List<Organization>) -> Unit,
         onError: (String) -> Unit
     ) {
-        // Validação básica do token antes de chamar a rede
+
         if (token.isNullOrBlank()) {
             onError("Token inválido ou não encontrado.")
             return
@@ -110,7 +110,7 @@ class OrganizationRepository {
             try {
                 println("Buscando meus hubs...")
 
-                // GET Request
+
                 val httpResponse = client.get(BASE_URL + "/organizations/my-hubs") {
                     headers {
                         append("ngrok-skip-browser-warning", "true")
@@ -119,7 +119,7 @@ class OrganizationRepository {
                     contentType(ContentType.Application.Json)
                 }
 
-                // Verifica erro HTTP
+
                 if (httpResponse.status.value >= 400) {
                     val errorBody = httpResponse.bodyAsText()
                     onError("Erro ${httpResponse.status.value}: $errorBody")
@@ -167,7 +167,7 @@ class OrganizationRepository {
                     return@launch
                 }
 
-                val response = httpResponse.body<OrganizationResponse>() // Reusa a response padrão
+                val response = httpResponse.body<OrganizationResponse>()
                 if (response.success && response.data != null) {
                     onSuccess(response.data)
                 } else {
@@ -199,7 +199,7 @@ class OrganizationRepository {
                     return@launch
                 }
 
-                // Assumindo que delete retorna 200 OK com json padrão ou vazio
+
                 onSuccess()
             } catch (e: Exception) {
                 onError("Erro: ${e.message}")

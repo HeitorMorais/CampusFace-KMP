@@ -34,9 +34,6 @@ import campusface.composeapp.generated.resources.back_icon
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.utils.AppEventBus // IMPORTANTE: Importar o Event Bus
 
-// ==========================================
-// 1. VIEW MODEL & STATE
-// ==========================================
 
 data class CreateHubUiState(
     val isLoading: Boolean = false,
@@ -52,29 +49,29 @@ class CreateHubViewModel(
     val uiState = _uiState.asStateFlow()
 
     fun createHub(nome: String, descricao: String, codigoHub: String, token: String?) {
-        // Validação
+
         if (nome.isBlank() || descricao.isBlank() || codigoHub.isBlank()) {
             _uiState.update { it.copy(error = "Preencha todos os campos") }
             return
         }
 
-        // Token check
+
         if (token.isNullOrBlank()) {
             _uiState.update { it.copy(error = "Erro de autenticação: Token inválido") }
             return
         }
 
-        // Loading
+
         _uiState.update { it.copy(isLoading = true, error = null) }
 
-        // Chamada API
+
         repository.createOrganization(
             name = nome,
             description = descricao,
             hubCode = codigoHub,
             token = token,
             onSuccess = {
-                // AQUI ESTÁ A MUDANÇA: Emite o evento global
+
                 viewModelScope.launch {
                     AppEventBus.emitRefresh()
                 }
@@ -92,9 +89,6 @@ class CreateHubViewModel(
     }
 }
 
-// ==========================================
-// 2. TELA PRINCIPAL
-// ==========================================
 
 @Composable
 fun CriarHubScreen(
@@ -102,31 +96,31 @@ fun CriarHubScreen(
     onBack: () -> Unit = { navController.popBackStack() },
     viewModel: CreateHubViewModel = viewModel { CreateHubViewModel() }
 ) {
-    // 1. Pega o token do repositório local
+
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
 
-    // 2. Estados dos campos de texto
+
     var nome by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var codigoHub by remember { mutableStateOf("") }
 
-    // 3. Estado da UI vindo do ViewModel
+
     val uiState by viewModel.uiState.collectAsState()
 
-    // 4. Estado para o Snackbar (Toast)
+
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // 5. EFEITO: Sucesso
+
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             snackbarHostState.showSnackbar("Hub criado com sucesso!")
-            onBack() // Navega de volta
+            onBack()
             viewModel.resetState()
         }
     }
 
-    // 6. EFEITO: Erro
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let { erro ->
             snackbarHostState.showSnackbar(erro)
@@ -147,7 +141,7 @@ fun CriarHubScreen(
                 horizontalAlignment = Alignment.Start
             ) {
 
-                // --- Header ---
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onBack() }
@@ -167,7 +161,7 @@ fun CriarHubScreen(
 
                 Spacer(Modifier.height(25.dp))
 
-                // --- Inputs ---
+
                 HubInput(
                     value = nome,
                     placeholder = "Nome da Organização",
@@ -192,7 +186,7 @@ fun CriarHubScreen(
 
                 Spacer(Modifier.height(30.dp))
 
-                // --- Botão de Criar ---
+
                 Button(
                     onClick = {
                         viewModel.createHub(nome, descricao, codigoHub, authState.token)
@@ -226,10 +220,6 @@ fun CriarHubScreen(
         }
     }
 }
-
-// ==========================================
-// 3. COMPONENTES AUXILIARES
-// ==========================================
 
 @Composable
 fun HubInput(

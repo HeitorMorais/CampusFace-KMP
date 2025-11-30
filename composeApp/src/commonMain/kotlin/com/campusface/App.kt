@@ -12,8 +12,8 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import com.campusface.data.Repository.AuthRepository
 import com.campusface.data.Repository.LocalAuthRepository
-import com.campusface.data.LocalAuthToken  // 👈 IMPORTA
-import com.campusface.data.LocalUserId     // 👈 IMPORTA
+import com.campusface.data.LocalAuthToken
+import com.campusface.data.LocalUserId
 import com.campusface.navigation.AppRoute
 import com.campusface.screens.DashboardLayout
 import com.campusface.screens.LoginScreen
@@ -40,7 +40,7 @@ fun App(
             val navController = rememberNavController()
             val authState by authRepository.authState.collectAsState()
 
-            // 👇 FORNECE TOKEN E USERID GLOBALMENTE
+
             CompositionLocalProvider(
                 LocalAuthToken provides authState.token,
                 LocalUserId provides authState.user?.id
@@ -78,7 +78,7 @@ fun App(
                             val dashboardNavController = rememberNavController()
                             DashboardLayout(
                                 navController = dashboardNavController
-                                // 👈 NÃO PRECISA MAIS PASSAR userId - vem do CompositionLocal
+
                             )
                         } else {
                             LaunchedEffect(Unit) {

@@ -38,13 +38,15 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-private fun inputColors() = OutlinedTextFieldDefaults.colors(
-    unfocusedBorderColor = Color(0xFFE5E7EB),
-    focusedBorderColor = Color.Black,
+private fun inputColors(isError: Boolean = false) = OutlinedTextFieldDefaults.colors(
+    unfocusedBorderColor = if (isError) Color(0xFFEF4444) else Color(0xFFE5E7EB),
+    focusedBorderColor = if (isError) Color(0xFFEF4444) else Color.Black,
     cursorColor = Color.Black,
-    focusedLabelColor = Color.Black,
-    focusedTextColor = Color.Black
+    focusedLabelColor = if (isError) Color.Black else Color.Black,
+    focusedTextColor = Color.Black,
+    errorBorderColor = Color(0xFFEF4444)
 )
+
 @Composable
 fun RegisterScreen(navController: NavHostController) {
     val authRepo = LocalAuthRepository.current
@@ -58,14 +60,23 @@ fun RegisterScreen(navController: NavHostController) {
     var document by remember { mutableStateOf("") }
     var imageBytes by remember { mutableStateOf(ByteArray(0)) }
     var selectedFile by remember { mutableStateOf<PlatformFile?>(null) }
+
+    // Estados de erro
+    var fullNameError by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf(false) }
+    var documentError by remember { mutableStateOf(false) }
+    var imageError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
     val launcher = rememberFilePickerLauncher(
         type = FileKitType.Image,
         title = "Selecione uma Imagem"
     ) { file: PlatformFile? ->
-        // 3. Este bloco é executado quando o usuário seleciona ou cancela
         selectedFile = file
+        imageError = false
     }
-    // 🔥 Corrigido: reage ao estado REAL de sucesso
+
     LaunchedEffect(authState) {
         if (authState.user != null && authState.error == null && !authState.isLoading) {
             navController.navigate(AppRoute.Login)
@@ -78,12 +89,10 @@ fun RegisterScreen(navController: NavHostController) {
             .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(420.dp)
         ) {
-
             Spacer(Modifier.height(32.dp))
 
             Image(
@@ -116,18 +125,19 @@ fun RegisterScreen(navController: NavHostController) {
                     .verticalScroll(scroll),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Botão de foto com feedback de erro
+                Button(
+                    onClick = { launcher.launch() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (imageError) Color.Black else Color.Black
+                    )
+                ) {
+                    Text("📷", fontSize = 26.sp)
+                }
 
-
-                    Button(onClick = {
-                        launcher.launch()
-                    }) {
-                        Text("📷", fontSize = 26.sp)
-                    }
                 val scope = rememberCoroutineScope()
 
                 selectedFile?.let { file ->
-
-                    // Carrega os bytes quando o arquivo mudar
                     LaunchedEffect(file) {
                         imageBytes = file.readBytes()
                     }
@@ -139,46 +149,84 @@ fun RegisterScreen(navController: NavHostController) {
                     )
                 }
 
-
                 Spacer(Modifier.height(10.dp))
-                Text("Foto de perfil", color = Color.Gray, fontSize = 14.sp)
+                Text(
+                    "Foto de perfil",
+                    color = if (imageError) Color(0xFFEF4444) else Color.Gray,
+                    fontSize = 14.sp
+                )
+
+                if (imageError) {
+                    Text(
+                        "Selecione uma foto de perfil",
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp
+                    )
+                }
 
                 Spacer(Modifier.height(32.dp))
 
-                // 👉 Nome
+                // Campo Nome
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { fullName = it },
+                    onValueChange = {
+                        fullName = it
+                        fullNameError = false
+                    },
                     placeholder = { Text("Nome completo", color = Color(0xFFBDBDBD)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    colors = inputColors()
+                    isError = fullNameError,
+                    colors = inputColors(fullNameError)
                 )
+                if (fullNameError) {
+                    Text(
+                        "Nome completo é obrigatório",
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(16.dp))
 
-                // 👉 Documento
+                // Campo CPF
                 OutlinedTextField(
                     value = document,
-                    onValueChange = { document = it },
+                    onValueChange = {
+                        document = it
+                        documentError = false
+                    },
                     placeholder = { Text("CPF", color = Color(0xFFBDBDBD)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    colors = inputColors()
+                    isError = documentError,
+                    colors = inputColors(documentError)
                 )
+                if (documentError) {
+                    Text(
+                        "CPF é obrigatório",
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(16.dp))
 
-                // 👉 Email
+                // Campo E-mail
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        emailError = false
+                    },
                     placeholder = { Text("E-mail", color = Color(0xFFBDBDBD)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier
@@ -186,15 +234,27 @@ fun RegisterScreen(navController: NavHostController) {
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    colors = inputColors()
+                    isError = emailError,
+                    colors = inputColors(emailError)
                 )
+                if (emailError) {
+                    Text(
+                        "E-mail válido é obrigatório",
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(16.dp))
 
-                // 👉 Senha
+                // Campo Senha
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = {
+                        password = it
+                        passwordError = false
+                    },
                     placeholder = { Text("Senha", color = Color(0xFFBDBDBD)) },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier
@@ -202,28 +262,76 @@ fun RegisterScreen(navController: NavHostController) {
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    colors = inputColors()
+                    isError = passwordError,
+                    colors = inputColors(passwordError)
                 )
+                if (passwordError) {
+                    Text(
+                        "Senha é obrigatória",
+                        color = Color(0xFFEF4444),
+                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 Spacer(Modifier.height(24.dp))
 
-                // 👉 Título
-                Text(
-                    "Tipo de acesso",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF374151),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Mensagem de erro geral
+                if (errorMessage.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFEE2E2)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            errorMessage,
+                            color = Color(0xFFEF4444),
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
 
-                Spacer(Modifier.height(12.dp))
-
-                // 👉 Botão Criar conta
+                // Botão Criar Conta
                 Button(
                     onClick = {
-                        if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || document.isEmpty()) {
+                        // Validação
+                        var hasError = false
+
+                        if (fullName.isBlank()) {
+                            fullNameError = true
+                            hasError = true
+                        }
+
+                        if (document.isBlank()) {
+                            documentError = true
+                            hasError = true
+                        }
+
+                        if (email.isBlank() || !email.contains("@")) {
+                            emailError = true
+                            hasError = true
+                        }
+
+                        if (password.isBlank()) {
+                            passwordError = true
+                            hasError = true
+                        }
+
+                        if (selectedFile == null || imageBytes.isEmpty()) {
+                            imageError = true
+                            hasError = true
+                        }
+
+                        if (hasError) {
+                            errorMessage = "Por favor, preencha todos os campos obrigatórios"
                             return@Button
                         }
+
+                        errorMessage = ""
 
                         authRepo.register(
                             fullName,

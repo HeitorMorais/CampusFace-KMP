@@ -16,9 +16,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// ==========================================
-// 1. MODELS (Dados que vêm da API)
-// ==========================================
 
 @Serializable
 data class OrganizationMember(
@@ -36,26 +33,20 @@ data class MemberListResponse(
     val data: List<OrganizationMember> = emptyList()
 )
 
-// ==========================================
-// 2. REPOSITORY
-// ==========================================
 
 class OrganizationMemberRepository {
 
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
-                ignoreUnknownKeys = true // Ignora campos extras para não quebrar o app
+                ignoreUnknownKeys = true
                 prettyPrint = true
                 isLenient = true
             })
         }
     }
 
-    /**
-     * Lista todos os membros de uma organização específica.
-     * Endpoint: GET /members/organization/{organizationId}
-     */
+
     fun listMembers(
         organizationId: String,
         token: String,
@@ -75,7 +66,7 @@ class OrganizationMemberRepository {
                     contentType(ContentType.Application.Json)
                 }
 
-                // Verifica erros HTTP (400, 401, 403, 500)
+                // Verifica erros HTTP
                 if (httpResponse.status.value >= 400) {
                     val errorBody = httpResponse.bodyAsText()
                     println("Erro API: $errorBody")
@@ -83,7 +74,7 @@ class OrganizationMemberRepository {
                     return@launch
                 }
 
-                // Converte o JSON para o objeto MemberListResponse
+                // Converte o JSON
                 val response = httpResponse.body<MemberListResponse>()
 
                 if (response.success) {

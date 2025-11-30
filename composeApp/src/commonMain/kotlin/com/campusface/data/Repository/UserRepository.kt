@@ -14,7 +14,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// DTO para enviar os dados de texto
+
 @Serializable
 data class UserUpdateBody(
     val fullName: String,
@@ -34,7 +34,7 @@ class UserRepository {
         }
     }
 
-    // --- BUSCAR DADOS (GET) ---
+    // get
     suspend fun getUser(id: String, token: String): Result<User> = runCatching {
         val httpResponse = client.get("${BASE_URL}/users/$id") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -48,7 +48,7 @@ class UserRepository {
         else throw Exception(apiResponse.message)
     }
 
-    // --- ATUALIZAR FOTO (PATCH) ---
+    //ATUALIZAR FOTO
     suspend fun updateProfileImage(
         imageBytes: ByteArray,
         token: String
@@ -74,14 +74,14 @@ class UserRepository {
         else throw Exception(apiResponse.message)
     }
 
-    // --- ATUALIZAR DADOS DE TEXTO (PUT) - NOVO ---
+
     suspend fun updateUserData(
         fullName: String,
         email: String,
         document: String,
         token: String
     ): Result<User> = runCatching {
-        // Verifica se seu backend usa PUT ou PATCH para dados. Assumindo PUT conforme Swagger.
+
         val httpResponse = client.put("${BASE_URL}/users") {
             header(HttpHeaders.Authorization, "Bearer $token")
             header("ngrok-skip-browser-warning", "true")

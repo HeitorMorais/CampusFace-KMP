@@ -71,12 +71,12 @@
         val authRepository = LocalAuthRepository.current
         val authState by authRepository.authState.collectAsState()
         val cores = NavigationRailItemDefaults.colors(
-            selectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone selecionado
-            selectedTextColor = MaterialTheme.colorScheme.background,   // Muda o texto selecionado
-            indicatorColor = MaterialTheme.colorScheme.primary, // Muda o fundo/indicador selecionado
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.background,
+            indicatorColor = MaterialTheme.colorScheme.primary,
 
-            unselectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone não-selecionado
-            unselectedTextColor = MaterialTheme.colorScheme.primary,   // Muda o texto não-selecionado
+            unselectedIconColor = MaterialTheme.colorScheme.primary,
+            unselectedTextColor = MaterialTheme.colorScheme.primary,
         )
 
         val backStackEntry by navController.currentBackStackEntryAsState()

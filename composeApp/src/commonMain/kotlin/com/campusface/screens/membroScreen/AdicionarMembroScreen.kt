@@ -22,9 +22,6 @@ import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.data.Repository.EntryRequestRepository
 import com.campusface.data.Repository.LocalAuthRepository
 
-// ==========================================
-// 1. VIEW MODEL & STATE
-// ==========================================
 
 data class AddMembroUiState(
     val isLoading: Boolean = false,
@@ -39,7 +36,7 @@ class AdicionarMembroViewModel(
     private val _uiState = MutableStateFlow(AddMembroUiState())
     val uiState = _uiState.asStateFlow()
 
-    // ALTERAÇÃO 1: Adicionado parâmetro 'role' para ser dinâmico
+
     fun solicitarEntrada(hubCode: String, token: String?, role: String) {
         if (token.isNullOrBlank()) {
             _uiState.update { it.copy(error = "Erro de autenticação.") }
@@ -55,7 +52,7 @@ class AdicionarMembroViewModel(
 
         repository.entryRequestCreate(
             hubCode = hubCode,
-            role = role, // Usa o parâmetro recebido (MEMBER ou VALIDATOR)
+            role = role,
             token = token,
             onSuccess = {
                 _uiState.update { it.copy(isLoading = false, isSuccess = true) }
@@ -71,15 +68,11 @@ class AdicionarMembroViewModel(
     }
 }
 
-// ==========================================
-// 2. TELA PRINCIPAL
-// ==========================================
 
 @Composable
 fun AdicionarMembroScreen(
     navController: NavHostController,
-    // ALTERAÇÃO 2: Recebe o papel alvo via parâmetro (Default = MEMBER)
-    // Você deve passar "VALIDATOR" quando chamar essa tela a partir da ValidarScreen
+
     targetRole: String = "MEMBER",
     viewModel: AdicionarMembroViewModel = viewModel { AdicionarMembroViewModel() }
 ) {
@@ -87,17 +80,17 @@ fun AdicionarMembroScreen(
     val authState by authRepository.authState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
-    // Estado do campo de texto
+
     var hubCode by remember { mutableStateOf("") }
 
-    // Estado do Snackbar (Toast)
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Define o título baseado no papel
+
     val screenTitle = if (targetRole == "VALIDATOR") "Tornar-se Validador" else "Entrar em um hub"
 
-    // EFEITO: Sucesso -> Volta para a tela anterior
+
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             snackbarHostState.showSnackbar("Solicitação enviada com sucesso!")
@@ -106,7 +99,7 @@ fun AdicionarMembroScreen(
         }
     }
 
-    // EFEITO: Erro -> Mostra Snackbar
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let { erro ->
             snackbarHostState.showSnackbar(erro)
@@ -126,7 +119,7 @@ fun AdicionarMembroScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // --- Header ---
+                //header
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -148,7 +141,7 @@ fun AdicionarMembroScreen(
                     }
                 }
 
-                // --- Formulário ---
+                // form
                 Column(
                     modifier = Modifier
                         .padding(top = 32.dp)
@@ -176,7 +169,7 @@ fun AdicionarMembroScreen(
 
                     Button(
                         onClick = {
-                            // ALTERAÇÃO 3: Passa o targetRole para o ViewModel
+
                             viewModel.solicitarEntrada(hubCode, authState.token, targetRole)
                         },
                         enabled = hubCode.isNotBlank() && !uiState.isLoading,

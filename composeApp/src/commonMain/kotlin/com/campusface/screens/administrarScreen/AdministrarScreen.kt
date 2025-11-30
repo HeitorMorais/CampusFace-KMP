@@ -34,9 +34,6 @@ import com.campusface.data.Repository.OrganizationRepository
 import com.campusface.navigation.DashboardRoute
 import com.campusface.utils.AppEventBus // Certifique-se de importar o Bus
 
-// ==========================================
-// 1. VIEW MODEL
-// ==========================================
 
 data class AdministrarUiState(
     val isLoading: Boolean = false,
@@ -58,8 +55,7 @@ class AdministrarViewModel(
     private var savedUserId: String? = null
 
     init {
-        // OUVINTE DE EVENTOS GLOBAIS
-        // Quando alguém (ex: CriarHubScreen) emitir um refresh, essa tela recarrega.
+
         viewModelScope.launch {
             AppEventBus.refreshFlow.collect {
                 if (!savedToken.isNullOrBlank() && !savedUserId.isNullOrBlank()) {
@@ -137,9 +133,7 @@ class AdministrarViewModel(
     }
 }
 
-// ==========================================
-// 2. TELA PRINCIPAL
-// ==========================================
+
 
 @Composable
 fun AdministrarScreen(
@@ -163,7 +157,8 @@ fun AdministrarScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ... Cabeçalho ...
+            //header
+
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,7 +172,7 @@ fun AdministrarScreen(
                 }
             }
 
-            // ... Conteúdo ...
+            //content
             when {
                 uiState.isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -232,9 +227,6 @@ fun AdministrarScreen(
     }
 }
 
-// ==========================================
-// 3. COMPONENTES
-// ==========================================
 
 @Composable
 fun HubAdminCard(

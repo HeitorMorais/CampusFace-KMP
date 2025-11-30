@@ -35,7 +35,7 @@ sealed interface DashboardRoute {
 
     @Serializable
     @SerialName("perfil")
-    data object MeuPerfil : DashboardRoute  // 👈 VOLTA A SER data object
+    data object MeuPerfil : DashboardRoute
 
     @Serializable
     @SerialName("sair")

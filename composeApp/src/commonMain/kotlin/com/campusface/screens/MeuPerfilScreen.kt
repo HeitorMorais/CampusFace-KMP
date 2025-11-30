@@ -42,9 +42,6 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.readBytes
 
-// ==========================================
-// 1. VIEW MODEL & STATE
-// ==========================================
 
 data class PerfilUiState(
     val isLoading: Boolean = false,
@@ -60,7 +57,7 @@ class MeuPerfilViewModel(
     private val _uiState = MutableStateFlow(PerfilUiState())
     val uiState = _uiState.asStateFlow()
 
-    // Carregar Perfil (GET)
+
     fun loadUserProfile(userId: String, token: String) {
         _uiState.update { it.copy(isLoading = true, error = null) }
 
@@ -75,7 +72,7 @@ class MeuPerfilViewModel(
         }
     }
 
-    // Salvar Alterações (Texto e/ou Imagem)
+
     fun saveChanges(
         token: String,
         newName: String,
@@ -87,18 +84,17 @@ class MeuPerfilViewModel(
 
         viewModelScope.launch {
             try {
-                // 1. Se tiver imagem nova, envia a imagem (PATCH)
+
                 if (newImageBytes != null) {
                     val resultImg = userRepository.updateProfileImage(newImageBytes, token)
-                    // Se falhar a imagem, para e mostra erro
+
                     if (resultImg.isFailure) throw resultImg.exceptionOrNull()!!
 
-                    // Atualiza localmente com o resultado da imagem
+
                     resultImg.onSuccess { u -> _uiState.update { it.copy(user = u) } }
                 }
 
-                // 2. Envia os dados de texto (PUT)
-                // Enviamos sempre para garantir consistência
+
                 val resultText = userRepository.updateUserData(newName, newEmail, newDoc, token)
 
                 resultText.onSuccess { updatedUser ->
@@ -118,44 +114,41 @@ class MeuPerfilViewModel(
     }
 }
 
-// ==========================================
-// 2. TELA PRINCIPAL (UI)
-// ==========================================
 
 @Composable
 fun MeuPerfilScreen(
     viewModel: MeuPerfilViewModel = viewModel { MeuPerfilViewModel() }
 ) {
-    // 1. Contexto de Autenticação
+
     val authRepository = LocalAuthRepository.current
     val authState by authRepository.authState.collectAsState()
 
-    // 2. Estado da Tela
+
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
-    // 3. Campos Editáveis
+
     var nome by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var document by remember { mutableStateOf("") }
 
-    // 4. Imagem
+
     var newImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var selectedImagePreview by remember { mutableStateOf<Any?>(null) }
 
-    // Flag para evitar sobrescrever o que o usuário está digitando se a tela recompor
+
     var isDataLoaded by remember { mutableStateOf(false) }
 
-    // 5. Carrega dados ao entrar
+
     LaunchedEffect(Unit) {
         if (authState.user != null && !authState.token.isNullOrBlank()) {
             viewModel.loadUserProfile(authState.user!!.id, authState.token!!)
         }
     }
 
-    // 6. Preenche os campos quando chegam da API (apenas na primeira vez)
+
     LaunchedEffect(uiState.user) {
         if (uiState.user != null && !isDataLoaded) {
             nome = uiState.user!!.fullName
@@ -165,7 +158,7 @@ fun MeuPerfilScreen(
         }
     }
 
-    // 7. Feedback de Sucesso
+
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             snackbarHostState.showSnackbar("Perfil atualizado com sucesso!")
@@ -175,12 +168,12 @@ fun MeuPerfilScreen(
         }
     }
 
-    // 8. Feedback de Erro
+
     LaunchedEffect(uiState.error) {
         uiState.error?.let { snackbarHostState.showSnackbar(it) }
     }
 
-    // 9. Seletor de Arquivos
+
     val launcher = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
         if (file != null) {
             selectedImagePreview = file
@@ -188,7 +181,7 @@ fun MeuPerfilScreen(
         }
     }
 
-    // Habilita botão se mudou texto OU imagem
+
     val hasTextChanges = uiState.user?.let {
         it.fullName != nome || it.email != email || (it.document ?: "") != document
     } ?: false
@@ -201,7 +194,7 @@ fun MeuPerfilScreen(
         ) { padding ->
 
             if (uiState.isLoading && !isDataLoaded) {
-                // Loading inicial
+
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -216,7 +209,7 @@ fun MeuPerfilScreen(
                 ) {
                     Spacer(Modifier.height(40.dp))
 
-                    // --- AVATAR CLICÁVEL ---
+
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -259,7 +252,7 @@ fun MeuPerfilScreen(
 
                     Spacer(Modifier.height(30.dp))
 
-                    // --- CAMPOS EDITÁVEIS ---
+
 
                     PerfilInput(
                         value = nome,
@@ -283,7 +276,7 @@ fun MeuPerfilScreen(
 
                     Spacer(Modifier.height(40.dp))
 
-                    // --- BOTÃO SALVAR ---
+
                     Button(
                         onClick = {
                             if (authState.user != null) {
@@ -304,7 +297,7 @@ fun MeuPerfilScreen(
                             containerColor = Color.Black,
                             disabledContainerColor = Color.Gray
                         ),
-                        // Habilita se houve mudança e não está carregando
+
                         enabled = !uiState.isLoading && (hasTextChanges || hasImageChanges)
                     ) {
                         if (uiState.isLoading) {
@@ -319,7 +312,7 @@ fun MeuPerfilScreen(
                         }
                     }
 
-                    // --- SAIR ---
+
                     Spacer(Modifier.height(16.dp))
                     TextButton(onClick = { authRepository.logout() }) {
                         Text("Sair da conta", color = Color.Red)
@@ -330,7 +323,7 @@ fun MeuPerfilScreen(
     }
 }
 
-// --- INPUT FIELD ---
+
 @Composable
 fun PerfilInput(
     value: String,

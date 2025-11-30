@@ -7,7 +7,7 @@ val mockSolicitacoesAtualizacao = listOf(
         solicitante = usuarioCecilia,
         dataSolicitacao = "2025-11-24T10:00:00Z",
         fotoAntigaUrl = usuarioCecilia.fotoPerfilUrl ?: "http://mockserver.com/foto_antiga_padrao.jpg",
-        fotoNovaUrl = "http://mockserver.com/foto_cecilia_v2_aprovada.jpg" // A foto pós-reconhecimento
+        fotoNovaUrl = "http://mockserver.com/foto_cecilia_v2_aprovada.jpg"
     ),
     SolicitacaoAtualizacao(
         id = "sa002",

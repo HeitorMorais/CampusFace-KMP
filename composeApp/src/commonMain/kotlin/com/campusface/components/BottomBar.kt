@@ -1,4 +1,4 @@
-// commonMain/kotlin/com/campusface/components/BottomBar.kt
+
 package com.campusface.components
 
 import androidx.compose.foundation.layout.padding
@@ -24,31 +24,31 @@ private val railItems = listOf(
     RailItem(
         label = "Membro",
         route = DashboardRouteNames.MEMBRO,
-        icon = Icons.Filled.Home, // Exemplo
+        icon = Icons.Filled.Home,
         destination = DashboardRoute.Membro
     ),
     RailItem(
         label = "Admin",
         route = DashboardRouteNames.ADMINISTRAR,
-        icon = Icons.Filled.Settings, // Exemplo
+        icon = Icons.Filled.Settings,
         destination = DashboardRoute.Administrar
     ),
     RailItem(
         label = "Validar",
         route = DashboardRouteNames.VALIDAR,
-        icon = Icons.Filled.Check, // Exemplo
+        icon = Icons.Filled.Check,
         destination = DashboardRoute.Validar
     ),
     RailItem(
         label = "Perfil",
         route = DashboardRouteNames.MEU_PERFIL,
-        icon = Icons.Filled.Person, // Exemplo
+        icon = Icons.Filled.Person,
         destination = DashboardRoute.MeuPerfil
     ),
 //    RailItem(
 //        label = "Sair",
 //        route = DashboardRouteNames.SAIR,
-//        icon = Icons.Filled.ExitToApp, // Exemplo
+//        icon = Icons.Filled.ExitToApp,
 //        destination = DashboardRoute.Sair
 //    ),
 )
@@ -60,11 +60,11 @@ fun BottomBar(
 ) {
     val cores = NavigationBarItemDefaults.colors(
         selectedIconColor = MaterialTheme.colorScheme.primary,
-        selectedTextColor = MaterialTheme.colorScheme.background,   // Muda o texto selecionado
-        indicatorColor = MaterialTheme.colorScheme.primary, // Muda o fundo/indicador selecionado
+        selectedTextColor = MaterialTheme.colorScheme.background,
+        indicatorColor = MaterialTheme.colorScheme.primary,
 
-        unselectedIconColor = MaterialTheme.colorScheme.primary, // Muda o ícone não-selecionado
-        unselectedTextColor = MaterialTheme.colorScheme.primary,   // Muda o texto não-selecionado
+        unselectedIconColor = MaterialTheme.colorScheme.primary,
+        unselectedTextColor = MaterialTheme.colorScheme.primary,
     )
     val backStackEntry by navController.currentBackStackEntryAsState()
 
@@ -74,10 +74,10 @@ fun BottomBar(
         modifier = Modifier.padding(5.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) {
-        // Agora iteramos sobre Rótulo, Objeto de Rota e Nome Constante
+
         railItems.forEach { item ->
 
-            // 2. Lógica de Seleção: Compara a rota atual com a String Constante.
+
             val isSelected = currentRouteName == item.route
 
             NavigationBarItem(

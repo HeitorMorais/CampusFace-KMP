@@ -16,16 +16,13 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// ==========================================
-// 1. MODELS DE REQUEST/RESPONSE
-// ==========================================
 
 @Serializable
 data class EntryRequest(
     val id: String,
     val hubCode: String,
     val role: String,
-    val status: String, // PENDING, APPROVED, DENIED
+    val status: String,
     val requestedAt: String? = null,
     val user: User
 )
@@ -56,9 +53,7 @@ data class ActionResponse(
     val success: Boolean
 )
 
-// ==========================================
-// 2. REPOSITORY
-// ==========================================
+
 
 class EntryRequestRepository {
 
@@ -72,7 +67,7 @@ class EntryRequestRepository {
         }
     }
 
-    // --- 1. CRIAR SOLICITAÇÃO (Usado em AdicionarMembroScreen) ---
+
     fun entryRequestCreate(
         hubCode: String,
         role: String?,
@@ -118,7 +113,7 @@ class EntryRequestRepository {
         }
     }
 
-    // --- 2. LISTAR MINHAS SOLICITAÇÕES (Usado em MembroScreen) ---
+
     fun listMyRequests(
         token: String?,
         onSuccess: (List<EntryRequest>) -> Unit,
@@ -156,7 +151,7 @@ class EntryRequestRepository {
         }
     }
 
-    // --- 3. LISTAR PENDENTES DO HUB (Usado pelo Admin em DetalhesHubScreen) ---
+
     fun listPendingRequestsByHub(
         hubCode: String,
         token: String,
@@ -191,7 +186,7 @@ class EntryRequestRepository {
         }
     }
 
-    // --- 4. APROVAR SOLICITAÇÃO (Admin) ---
+
     fun approveRequest(
         requestId: String,
         token: String,
@@ -201,7 +196,7 @@ class EntryRequestRepository {
         performAction(requestId, "approve", token, onSuccess, onError)
     }
 
-    // --- 5. REJEITAR SOLICITAÇÃO (Admin) ---
+
     fun rejectRequest(
         requestId: String,
         token: String,
@@ -211,7 +206,7 @@ class EntryRequestRepository {
         performAction(requestId, "reject", token, onSuccess, onError)
     }
 
-    // Função auxiliar privada para evitar repetição
+
     private fun performAction(
         requestId: String,
         action: String,

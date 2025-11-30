@@ -1,6 +1,6 @@
 package com.campusface.data.Model
 
-// Módulo: shared/src/commonMain/kotlin/data/SolicitacaoEntrada.kt
+
 
 data class SolicitacaoEntrada(
     val id: String,

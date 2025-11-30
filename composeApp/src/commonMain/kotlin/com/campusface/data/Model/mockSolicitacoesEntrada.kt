@@ -42,7 +42,7 @@ val mockSolicitacoesEntrada = listOf(
         dataSolicitacao = "2025-11-23T15:30:00Z",
         mensagem = "Sou novo na Fatec e quero me conectar com outros alunos."
     ),
-    // Esta solicitação é para outro Hub (ID 2), não aparecerá na aba do Hub 1
+
     SolicitacaoEntrada(
         id = "se003",
         hubId = 2,

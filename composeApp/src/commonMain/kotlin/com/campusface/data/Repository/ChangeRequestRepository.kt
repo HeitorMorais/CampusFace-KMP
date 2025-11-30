@@ -15,9 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// ==========================================
-// 1. MODELS (DTOs)
-// ==========================================
 
 @Serializable
 data class ChangeRequestDto(
@@ -42,18 +39,15 @@ data class ChangeRequestListResponse(
 data class ChangeRequestResponse(
     val success: Boolean = false,
     val message: String = "",
-    val data: ChangeRequestDto? = null // Pode vir vazio no review
+    val data: ChangeRequestDto? = null
 )
 
-// --- NOVO: Body para o Review ---
+
 @Serializable
 data class ReviewRequestBody(
     val approved: Boolean
 )
 
-// ==========================================
-// 2. REPOSITORY
-// ==========================================
 
 class ChangeRequestRepository {
 
@@ -68,7 +62,7 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- CRIAR REQUEST (Upload de Foto) ---
+
     fun createChangeRequest(
         organizationId: String,
         imageBytes: ByteArray,
@@ -108,7 +102,7 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- LISTAR PENDENTES ---
+
     fun listPendingChangeRequests(
         organizationId: String,
         token: String,
@@ -139,7 +133,7 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- REVISAR (Aprovar) ---
+    //revisar
     fun approveChangeRequest(
         requestId: String,
         token: String,
@@ -150,18 +144,18 @@ class ChangeRequestRepository {
         sendReview(requestId, true, token, onSuccess, onError)
     }
 
-    // --- REVISAR (Rejeitar) ---
+    //revisar - rejeitar
     fun rejectChangeRequest(
         requestId: String,
         token: String,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        // Chama o endpoint de review passando FALSE
+        // Chama o endpoint
         sendReview(requestId, false, token, onSuccess, onError)
     }
 
-    // Função privada para chamar o endpoint /review
+
     private fun sendReview(
         requestId: String,
         isApproved: Boolean,
@@ -177,7 +171,7 @@ class ChangeRequestRepository {
                         append(HttpHeaders.Authorization, "Bearer $token")
                     }
                     contentType(ContentType.Application.Json)
-                    // CORREÇÃO: Envia o JSON { "approved": true/false }
+
                     setBody(ReviewRequestBody(approved = isApproved))
                 }
 
@@ -188,7 +182,7 @@ class ChangeRequestRepository {
 
                 val response = httpResponse.body<ChangeRequestResponse>()
 
-                // O Swagger diz que retorna success=true.
+
                 if (response.success) {
                     onSuccess()
                 } else {

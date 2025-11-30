@@ -22,11 +22,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 
-// ==============================
-// MODELOS
-// ==============================
 
-// Conteúdo do login
 @Serializable
 data class LoginData(
     val user: User,
@@ -42,9 +38,6 @@ data class AuthState(
     val role: String? = null
 )
 
-// ==============================
-// REPOSITÓRIO
-// ==============================
 
 class AuthRepository {
 
@@ -66,7 +59,7 @@ class AuthRepository {
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    // LOGIN ====================================================
+    // LOGIN
     fun login(email: String, password: String) {
         scope.launch {
             try {
@@ -111,7 +104,7 @@ class AuthRepository {
         }
     }
 
-    // REGISTER ====================================================
+    // REGISTER
     fun register(
         fullName: String,
         email: String,

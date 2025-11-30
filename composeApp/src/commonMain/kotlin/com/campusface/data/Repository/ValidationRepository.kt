@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// --- MODELS (Baseados no Swagger) ---
+
 @Serializable
 data class ValidateCodeRequest(
     val code: String
@@ -24,7 +24,7 @@ data class ValidateCodeRequest(
 data class ValidationResponseData(
     val valid: Boolean,
     val message: String,
-    val member: OrganizationMember? = null // Retorna os dados do membro se válido
+    val member: OrganizationMember? = null
 )
 
 @Serializable
@@ -35,13 +35,13 @@ data class ValidationApiResponse(
 )
 @Serializable
 data class GenerateCodeRequest(
-    val organizationId: String // O Swagger pede exatamente este campo no body
+    val organizationId: String
 )
 
 @Serializable
 data class GeneratedCodeData(
     val code: String,
-    val expirationTime: String // ISO 8601 ex: 2025-11-30T03:11:44.492Z
+    val expirationTime: String
 )
 
 @Serializable
@@ -51,7 +51,7 @@ data class GenerateCodeResponse(
     val data: GeneratedCodeData? = null
 )
 
-// --- REPOSITORY ---
+
 
 class ValidationRepository {
 
@@ -120,18 +120,18 @@ class ValidationRepository {
                     setBody(ValidateCodeRequest(code))
                 }
 
-                // API retorna 200 para sucesso e 422 para inválido/expirado
+
                 val rawResponse = httpResponse.body<ValidationApiResponse>()
 
                 if (rawResponse.success && rawResponse.data != null) {
                     onSuccess(rawResponse.data)
                 } else {
-                    // Se a API retornar sucesso=false no body, tratamos como erro
+
                     onError(rawResponse.message)
                 }
 
             } catch (e: Exception) {
-                // Erros de rede ou 403 (permissão) caem aqui
+
                 onError("Erro de validação: ${e.message}")
             }
         }
