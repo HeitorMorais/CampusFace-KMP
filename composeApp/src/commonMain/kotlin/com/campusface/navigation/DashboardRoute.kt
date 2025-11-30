@@ -1,4 +1,3 @@
-
 package com.campusface.navigation
 
 import kotlinx.serialization.SerialName
@@ -34,7 +33,7 @@ sealed interface DashboardRoute {
 
     @Serializable
     @SerialName("perfil")
-    data object MeuPerfil: DashboardRoute
+    data object MeuPerfil : DashboardRoute  // 👈 VOLTA A SER data object
 
     @Serializable
     @SerialName("sair")
@@ -50,6 +49,5 @@ object DashboardRouteNames {
     const val ADMINISTRAR = "com.campusface.navigation.DashboardRoute.Administrar"
     const val VALIDAR = "com.campusface.navigation.DashboardRoute.Validar"
     const val MEU_PERFIL = "com.campusface.navigation.DashboardRoute.MeuPerfil"
-
     const val SAIR = "com.campusface.navigation.DashboardRoute.Sair"
 }

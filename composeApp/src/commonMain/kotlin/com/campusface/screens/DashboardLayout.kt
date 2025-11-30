@@ -1,4 +1,3 @@
-
 package com.campusface.screens
 
 import androidx.compose.foundation.layout.*
@@ -14,7 +13,7 @@ import com.campusface.components.BottomBar
 import androidx.compose.runtime.getValue
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.campusface.components.Sidebar
-import com.campusface.navigation.DashboardRoute // 🚨 Nova Rota
+import com.campusface.navigation.DashboardRoute
 import com.campusface.screens.membroScreen.MembroScreen
 import com.campusface.screens.membroScreen.AdicionarMembroScreen
 import com.campusface.screens.administrarScreen.AdministrarScreen
@@ -26,22 +25,17 @@ import com.campusface.screens.validarScreen.QrCodeValidadorScreen
 @Composable
 fun DashboardLayout(
     navController: NavHostController
+    // 👈 NÃO PRECISA MAIS DE userId NEM userRepository
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
 
-    val currentDestination = backStackEntry?.destination?.route
-
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isMobile = maxWidth < 600.dp
 
         if (isMobile) {
             Scaffold(
                 bottomBar = {
-                    BottomBar(
-                        navController = navController
-                    )
+                    BottomBar(navController = navController)
                 }
             ) { paddingValues ->
                 DashboardContentNavHost(
@@ -51,10 +45,7 @@ fun DashboardLayout(
             }
         } else {
             Row(modifier = Modifier.fillMaxSize()) {
-                Sidebar(
-                    navController = navController,
-                )
-
+                Sidebar(navController = navController)
 
                 DashboardContentNavHost(
                     navController = navController,
@@ -64,6 +55,7 @@ fun DashboardLayout(
         }
     }
 }
+
 @Composable
 fun DashboardContentNavHost(
     navController: NavHostController,
@@ -76,7 +68,6 @@ fun DashboardContentNavHost(
     ) {
         composable<DashboardRoute.Membro> {
             MembroScreen(navController = navController)
-
         }
 
         // Dentro de DashboardContentNavHost
@@ -105,12 +96,11 @@ fun DashboardContentNavHost(
         }
 
         composable<DashboardRoute.MeuPerfil> {
-            MeuPerfilScreen()
+            MeuPerfilScreen()  // 👈 NÃO PRECISA PASSAR NADA
         }
 
         composable<DashboardRoute.DetalhesHub> { backStackEntry ->
             val rota = backStackEntry.toRoute<DashboardRoute.DetalhesHub>()
-
             DetalhesHubScreen(
                 hubId = rota.hubId,
                 navController = navController
@@ -118,19 +108,11 @@ fun DashboardContentNavHost(
         }
 
         composable<DashboardRoute.QrCodeMembro> { backStackEntry ->
-            val rota = backStackEntry.toRoute<DashboardRoute.QrCodeMembro>()
-
-            QrCodeMembroScreen(
-                navController = navController
-            )
+            QrCodeMembroScreen(navController = navController)
         }
 
         composable<DashboardRoute.QrCodeValidador> { backStackEntry ->
-            val rota = backStackEntry.toRoute<DashboardRoute.QrCodeValidador>()
-
-            QrCodeValidadorScreen(
-                navController = navController
-            )
+            QrCodeValidadorScreen(navController = navController)
         }
     }
 }

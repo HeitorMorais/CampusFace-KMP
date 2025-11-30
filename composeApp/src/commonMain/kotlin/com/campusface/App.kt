@@ -1,4 +1,5 @@
 package com.campusface
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -11,20 +12,19 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import com.campusface.data.Repository.AuthRepository
 import com.campusface.data.Repository.LocalAuthRepository
+import com.campusface.data.LocalAuthToken  // 👈 IMPORTA
+import com.campusface.data.LocalUserId     // 👈 IMPORTA
 import com.campusface.navigation.AppRoute
 import com.campusface.screens.DashboardLayout
 import com.campusface.screens.LoginScreen
 import com.campusface.screens.RegisterScreen
 import com.campusface.theme.CampusFaceTheme
 import io.github.vinceglb.filekit.coil.addPlatformFileSupport
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-@Preview
 fun App(
     onNavHostReady: suspend (NavHostController) -> Unit = {}
 ) {
-    //setup do filekit + coil
     setSingletonImageLoaderFactory { context ->
         ImageLoader.Builder(context)
             .components {
@@ -32,59 +32,65 @@ fun App(
             }
             .build()
     }
-    CampusFaceTheme {
-    val authRepository = remember { AuthRepository() }
 
+    CampusFaceTheme {
+        val authRepository = remember { AuthRepository() }
 
         CompositionLocalProvider(LocalAuthRepository provides authRepository) {
-
             val navController = rememberNavController()
             val authState by authRepository.authState.collectAsState()
 
-
-            LaunchedEffect(authState.isAuthenticated) {
-                if (authState.isAuthenticated) {
-                    navController.navigate(AppRoute.DashboardGraph) {
-                        popUpTo(AppRoute.Login) { inclusive = true }
-                    }
-                } else {
-                    navController.navigate(AppRoute.Login) {
-                        popUpTo(AppRoute.DashboardGraph) { inclusive = true }
-                    }
-                }
-            }
-            LaunchedEffect(navController) {
-                onNavHostReady(navController)
-            }
-            NavHost(
-                navController = navController,
-                startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login
+            // 👇 FORNECE TOKEN E USERID GLOBALMENTE
+            CompositionLocalProvider(
+                LocalAuthToken provides authState.token,
+                LocalUserId provides authState.user?.id
             ) {
-                composable<AppRoute.Register> {
-                    RegisterScreen(navController = navController)
-                }
-                composable<AppRoute.Login> {
-                    LoginScreen(navController = navController)
-                }
-
-                composable<AppRoute.DashboardGraph> {
-                    // 🔑 CHAVE AQUI: Proteção contra manipulação de URL
+                LaunchedEffect(authState.isAuthenticated) {
                     if (authState.isAuthenticated) {
-                        // Se estiver autenticado, carrega o conteúdo
-                        val dashboardNavController = rememberNavController()
-                        DashboardLayout(navController = dashboardNavController)
-                    } else {
-                        LaunchedEffect(Unit) {
-                            navController.navigate(AppRoute.Login) {
-                                popUpTo(AppRoute.DashboardGraph) { inclusive = true }
-                            }
+                        navController.navigate(AppRoute.DashboardGraph) {
+                            popUpTo(AppRoute.Login) { inclusive = true }
                         }
+                    } else {
+                        navController.navigate(AppRoute.Login) {
+                            popUpTo(AppRoute.DashboardGraph) { inclusive = true }
+                        }
+                    }
+                }
 
-                        Box(Modifier.fillMaxSize())
+                LaunchedEffect(navController) {
+                    onNavHostReady(navController)
+                }
+
+                NavHost(
+                    navController = navController,
+                    startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login
+                ) {
+                    composable<AppRoute.Register> {
+                        RegisterScreen(navController = navController)
+                    }
+
+                    composable<AppRoute.Login> {
+                        LoginScreen(navController = navController)
+                    }
+
+                    composable<AppRoute.DashboardGraph> {
+                        if (authState.isAuthenticated && authState.user != null) {
+                            val dashboardNavController = rememberNavController()
+                            DashboardLayout(
+                                navController = dashboardNavController
+                                // 👈 NÃO PRECISA MAIS PASSAR userId - vem do CompositionLocal
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.navigate(AppRoute.Login) {
+                                    popUpTo(AppRoute.DashboardGraph) { inclusive = true }
+                                }
+                            }
+                            Box(Modifier.fillMaxSize())
+                        }
                     }
                 }
             }
         }
-
     }
 }
