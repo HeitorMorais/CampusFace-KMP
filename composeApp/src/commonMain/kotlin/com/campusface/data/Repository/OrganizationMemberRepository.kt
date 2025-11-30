@@ -1,7 +1,7 @@
 package com.campusface.data.Repository
 
 import com.campusface.data.BASE_URL
-import com.campusface.data.Model.User // Certifique-se de que sua classe User existe neste pacote
+import com.campusface.data.Model.User
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -16,14 +16,17 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+// ==========================================
+// 1. MODELS
+// ==========================================
 
 @Serializable
 data class OrganizationMember(
     val id: String,
-    val role: String,   // Ex: "MEMBER", "ADMIN", "VALIDATOR"
-    val status: String, // Ex: "PENDING", "ACTIVE"
+    val role: String,   // "MEMBER", "ADMIN", "VALIDATOR"
+    val status: String, // "PENDING", "ACTIVE", "INACTIVE"
     val joinedAt: String? = null,
-    val user: User      // Dados do usuário (nome, email, foto)
+    val user: User
 )
 
 @Serializable
@@ -33,9 +36,27 @@ data class MemberListResponse(
     val data: List<OrganizationMember> = emptyList()
 )
 
+@Serializable
+data class MemberResponse(
+    val success: Boolean,
+    val message: String,
+    val data: OrganizationMember? = null
+)
+
+// DTO para enviar na atualização
+@Serializable
+data class MemberUpdateRequest(
+    val role: String? = null,
+    val status: String? = null
+)
+
+// ==========================================
+// 2. REPOSITORY
+// ==========================================
 
 class OrganizationMemberRepository {
 
+    // Cliente Genérico
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -46,7 +67,10 @@ class OrganizationMemberRepository {
         }
     }
 
-
+    /**
+     * LISTAR MEMBROS
+     * GET /members/organization/{id}
+     */
     fun listMembers(
         organizationId: String,
         token: String,
@@ -55,26 +79,20 @@ class OrganizationMemberRepository {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                println("Buscando membros da Org: $organizationId")
-
                 val httpResponse = client.get(BASE_URL + "/members/organization/$organizationId") {
                     headers {
-                        // Header necessário para passar pela tela de aviso do Ngrok (se estiver usando versão free)
                         append("ngrok-skip-browser-warning", "true")
                         append(HttpHeaders.Authorization, "Bearer $token")
                     }
                     contentType(ContentType.Application.Json)
                 }
 
-                // Verifica erros HTTP
                 if (httpResponse.status.value >= 400) {
                     val errorBody = httpResponse.bodyAsText()
-                    println("Erro API: $errorBody")
-                    onError("Erro ${httpResponse.status.value}: Falha ao buscar membros.")
+                    onError("Erro ${httpResponse.status.value}: $errorBody")
                     return@launch
                 }
 
-                // Converte o JSON
                 val response = httpResponse.body<MemberListResponse>()
 
                 if (response.success) {
@@ -84,8 +102,88 @@ class OrganizationMemberRepository {
                 }
 
             } catch (e: Exception) {
-                println("ListMembers ERROR: ${e.message}")
-                e.printStackTrace()
+                onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * ATUALIZAR MEMBRO (Role ou Status)
+     * PUT /members/{id}
+     */
+    fun updateMember(
+        memberId: String,
+        newRole: String? = null,
+        newStatus: String? = null,
+        token: String,
+        onSuccess: (OrganizationMember) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.put(BASE_URL + "/members/$memberId") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        MemberUpdateRequest(
+                            role = newRole,
+                            status = newStatus
+                        )
+                    )
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    val errorBody = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $errorBody")
+                    return@launch
+                }
+
+                val response = httpResponse.body<MemberResponse>()
+
+                if (response.success && response.data != null) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+
+            } catch (e: Exception) {
+                onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * REMOVER MEMBRO
+     * DELETE /members/{id}
+     */
+    fun deleteMember(
+        memberId: String,
+        token: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.delete(BASE_URL + "/members/$memberId") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    val errorBody = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $errorBody")
+                    return@launch
+                }
+
+                // Delete geralmente retorna 200 OK
+                onSuccess()
+
+            } catch (e: Exception) {
                 onError("Erro de conexão: ${e.message}")
             }
         }
