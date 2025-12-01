@@ -399,10 +399,10 @@ fun MembroCard(
                     containerColor = Color.White
                 ) {
                     // Opções de Role
-                    if (member.role != "ADMIN") {
+                    if (member.role != "VALIDATOR") {
                         DropdownMenuItem(
-                            text = { Text("Promover a Admin") },
-                            onClick = { expanded = false; onUpdate("ADMIN", null) },
+                            text = { Text("Promover a Validador") },
+                            onClick = { expanded = false; onUpdate("VALIDATOR", null) },
                             leadingIcon = { Icon(Icons.Default.Security, null) }
                         )
                     }

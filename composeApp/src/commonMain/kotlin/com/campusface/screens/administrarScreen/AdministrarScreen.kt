@@ -260,7 +260,8 @@ fun HubAdminCard(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Groups, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                val totalPessoas = organization.members.size + organization.validators.size
+                var totalPessoas = organization.members.size + organization.validators.size
+                if(totalPessoas == 0) totalPessoas = 1
                 Text(text = "$totalPessoas", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp))
                 Spacer(Modifier.width(8.dp))
 
