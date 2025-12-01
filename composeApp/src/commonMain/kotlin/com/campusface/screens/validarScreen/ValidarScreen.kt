@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -132,6 +133,10 @@ class ValidarViewModel(
             }
         )
     }
+    fun refresh(token: String?, userId: String?) {
+        // Chama a busca forçando o reload
+        fetchValidatorData(token, userId, forceReload = true)
+    }
 }
 
 // ==========================================
@@ -150,6 +155,10 @@ fun ValidarScreen(
     // Carrega dados ao entrar
     LaunchedEffect(Unit) {
         viewModel.fetchValidatorData(authState.token, authState.user?.id)
+    }
+
+    val onRefresh: () -> Unit = {
+        viewModel.refresh(authState.token, authState.user?.id)
     }
 
     AdaptiveScreenContainer {
@@ -179,17 +188,17 @@ fun ValidarScreen(
             }
 
             // --- Conteúdo ---
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
+            PullToRefreshBox(
+                isRefreshing = uiState.isLoading,
+                onRefresh = onRefresh,
+                modifier = Modifier.weight(1f) // Ocupa o resto da tela
+            ) {
                 UnifiedValidatorList(
                     activeHubs = uiState.activeValidatorHubs,
                     pendingRequests = uiState.pendingValidatorRequests,
                     navController = navController,
                     error = uiState.error,
-                    onRetry = { viewModel.fetchValidatorData(authState.token, authState.user?.id, true) }
+                    onRetry = onRefresh
                 )
             }
         }
@@ -208,74 +217,78 @@ fun UnifiedValidatorList(
     error: String?,
     onRetry: () -> Unit
 ) {
-    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
 
-        // Aviso de Erro (se houver)
-        if (error != null) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Erro: $error", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    IconButton(onClick = onRetry) { Icon(Icons.Default.Refresh, "Recarregar") }
-                }
-            }
-        }
-
-        // 1. Hubs Ativos (Sou Validador)
-        if (activeHubs.isNotEmpty()) {
-            items(activeHubs) { org ->
-                ValidatorCard(
-                    title = org.name,
-                    subtitle = org.hubCode,
-                    status = "Ativo",
-                    statusColor = Color(0xFF00A12B), // Verde
-                    isClickable = true,
-                    onClick = {
-                        // Validador clica para abrir o Scanner
-                        navController.navigate(DashboardRoute.QrCodeValidador)
+            // Aviso de Erro (se houver)
+            if (error != null) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Erro: $error",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        IconButton(onClick = onRetry) { Icon(Icons.Default.Refresh, "Recarregar") }
                     }
-                )
-            }
-        }
-
-        // 2. Solicitações Pendentes (Quero ser Validador)
-        val visibleRequests = pendingRequests.filter { it.status != "APPROVED" }
-
-        if (visibleRequests.isNotEmpty()) {
-            items(visibleRequests) { req ->
-                val (color, text) = when(req.status) {
-                    "PENDING" -> Color(0xFFFFBB00) to "Solicitado"
-                    "DENIED" -> Color(0xFFB00020) to "Recusado"
-                    else -> Color.Gray to req.status
                 }
-
-                ValidatorCard(
-                    title = req.hubCode, // EntryRequest só tem código
-                    subtitle = "Aguardando aprovação",
-                    status = text,
-                    statusColor = color,
-                    isClickable = false,
-                    onClick = {}
-                )
             }
-        }
 
-        // Estado Vazio
-        if (activeHubs.isEmpty() && visibleRequests.isEmpty() && error == null) {
-            item {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Você não é validador em nenhum Hub.",
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.bodyMedium
+            // 1. Hubs Ativos (Sou Validador)
+            if (activeHubs.isNotEmpty()) {
+                items(activeHubs) { org ->
+                    ValidatorCard(
+                        title = org.name,
+                        subtitle = org.hubCode,
+                        status = "Ativo",
+                        statusColor = Color(0xFF00A12B), // Verde
+                        isClickable = true,
+                        onClick = {
+                            // Validador clica para abrir o Scanner
+                            navController.navigate(DashboardRoute.QrCodeValidador)
+                        }
                     )
                 }
             }
+
+            // 2. Solicitações Pendentes (Quero ser Validador)
+            val visibleRequests = pendingRequests.filter { it.status != "APPROVED" }
+
+            if (visibleRequests.isNotEmpty()) {
+                items(visibleRequests) { req ->
+                    val (color, text) = when (req.status) {
+                        "PENDING" -> Color(0xFFFFBB00) to "Solicitado"
+                        "DENIED" -> Color(0xFFB00020) to "Recusado"
+                        else -> Color.Gray to req.status
+                    }
+
+                    ValidatorCard(
+                        title = req.hubCode, // EntryRequest só tem código
+                        subtitle = "Aguardando aprovação",
+                        status = text,
+                        statusColor = color,
+                        isClickable = false,
+                        onClick = {}
+                    )
+                }
+            }
+
+            // Estado Vazio
+            if (activeHubs.isEmpty() && visibleRequests.isEmpty() && error == null) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Você não é validador em nenhum Hub.",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
         }
-    }
 }
 
 @Composable
@@ -294,8 +307,8 @@ fun ValidatorCard(
             .then(if (isClickable) Modifier.clickable { onClick() } else Modifier),
         colors = CardDefaults.cardColors(
             // Cor diferenciada para indicar que é área de Validador
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         )
     ) {
         Row(

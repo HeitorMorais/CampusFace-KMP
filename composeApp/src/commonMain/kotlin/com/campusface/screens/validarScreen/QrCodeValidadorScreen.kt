@@ -201,11 +201,13 @@ fun QrCodeValidadorScreen(
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), // Verde claro
                     elevation = CardDefaults.cardElevation(8.dp),
-                    modifier = Modifier.padding(32.dp).fillMaxWidth()
+                    modifier = Modifier.padding(32.dp).fillMaxWidth(),
+
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+
                     ) {
                         Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF43A047), modifier = Modifier.size(64.dp))
                         Spacer(Modifier.height(16.dp))
