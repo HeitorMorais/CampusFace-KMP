@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,13 +32,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-// Imports do seu projeto
 import com.campusface.components.AdaptiveScreenContainer
 import com.campusface.data.Model.User
 import com.campusface.data.Repository.LocalAuthRepository
 import com.campusface.data.Repository.UserRepository
-import com.campusface.screens.administrarScreen.buildImageUrl // Helper de URL
+import com.campusface.screens.administrarScreen.buildImageUrl
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.readBytes
@@ -46,6 +45,7 @@ import io.github.vinceglb.filekit.readBytes
 data class PerfilUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
+    val isDeleted: Boolean = false,
     val user: User? = null,
     val error: String? = null
 )
@@ -108,6 +108,19 @@ class MeuPerfilViewModel(
             }
         }
     }
+    fun deleteAccount(userId: String, token: String) {
+        _uiState.update { it.copy(isLoading = true, error = null) }
+
+        viewModelScope.launch {
+            userRepository.deleteUser(userId, token)
+                .onSuccess {
+                    _uiState.update { it.copy(isLoading = false, isDeleted = true) }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(isLoading = false, error = "Erro ao excluir: ${e.message}") }
+                }
+        }
+    }
 
     fun resetSuccess() {
         _uiState.update { it.copy(isSuccess = false) }
@@ -140,7 +153,7 @@ fun MeuPerfilScreen(
 
 
     var isDataLoaded by remember { mutableStateOf(false) }
-
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (authState.user != null && !authState.token.isNullOrBlank()) {
@@ -163,8 +176,14 @@ fun MeuPerfilScreen(
         if (uiState.isSuccess) {
             snackbarHostState.showSnackbar("Perfil atualizado com sucesso!")
             viewModel.resetSuccess()
-            newImageBytes = null // Limpa a seleção pendente
+            newImageBytes = null
             selectedImagePreview = null
+        }
+    }
+
+    LaunchedEffect(uiState.isDeleted) {
+        if (uiState.isDeleted) {
+            authRepository.logout()
         }
     }
 
@@ -315,12 +334,44 @@ fun MeuPerfilScreen(
                         }
                     }
 
-
                     Spacer(Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Excluir minha conta", color = Color.Red, fontSize = 14.sp)
+                    }
                 }
             }
         }
     }
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            icon = { Icon(Icons.Default.Warning, null, tint = Color.Red) },
+            title = { Text("Excluir Conta?") },
+            text = { Text("Tem certeza que deseja excluir sua conta permanentemente? Esta ação não pode ser desfeita.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        if (authState.user != null && authState.token != null) {
+                            viewModel.deleteAccount(authState.user!!.id, authState.token!!)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Sim, excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") }
+            },
+            containerColor = Color.White
+        )
+    }
+
 }
 
 

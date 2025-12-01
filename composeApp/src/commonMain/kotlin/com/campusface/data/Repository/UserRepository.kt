@@ -95,4 +95,17 @@ class UserRepository {
         if (apiResponse.success && apiResponse.data != null) apiResponse.data
         else throw Exception(apiResponse.message)
     }
+    // --- DELETAR CONTA (DELETE) ---
+    suspend fun deleteUser(id: String, token: String): Result<Unit> = runCatching {
+        val httpResponse = client.delete("${BASE_URL}/users/$id") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            header("ngrok-skip-browser-warning", "true")
+        }
+
+        if (httpResponse.status.value >= 400) {
+            throw Exception("Erro ao deletar: ${httpResponse.status.value}")
+        }
+
+        // Retorna sucesso (Unit)
+    }
 }
