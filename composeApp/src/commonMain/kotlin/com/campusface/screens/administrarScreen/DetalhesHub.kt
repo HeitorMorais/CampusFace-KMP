@@ -47,10 +47,8 @@ import com.campusface.data.Repository.OrganizationRepository
 import com.campusface.data.Model.Organization
 import com.campusface.data.Repository.ChangeRequestRepository
 import com.campusface.data.Repository.ChangeRequestDto
+import com.campusface.utils.AppEventBus
 
-// ==========================================
-// CONFIGURAÇÃO DE IMAGEM
-// ==========================================
 fun buildImageUrl(imageId: String?): String {
     if (imageId.isNullOrBlank()) return ""
     return if (imageId.startsWith("http")) {
@@ -59,11 +57,6 @@ fun buildImageUrl(imageId: String?): String {
         "https://res.cloudinary.com/dt2117/image/upload/$imageId"
     }
 }
-
-// ==========================================
-// 1. VIEW MODEL & STATE
-// ==========================================
-
 data class HubDetailsUiState(
     val isLoading: Boolean = false,
     val hub: Organization? = null,
@@ -82,12 +75,27 @@ class HubDetailsViewModel(
 
     private val _uiState = MutableStateFlow(HubDetailsUiState())
     val uiState = _uiState.asStateFlow()
-
+    // Variáveis para permitir o refresh automático
     private var currentHubCode: String? = null
+    private var savedHubId: String? = null
+    private var savedToken: String? = null
 
-    fun fetchHubDetails(hubId: String, token: String?) {
+    init {
+        // --- 1. ESCUTAR EVENTOS ---
+        viewModelScope.launch {
+            AppEventBus.refreshFlow.collect {
+                // Se temos os dados salvos, recarregamos tudo
+                if (!savedHubId.isNullOrBlank() && !savedToken.isNullOrBlank()) {
+                    fetchHubDetails(savedHubId!!, savedToken!!, forceReload = true)
+                }
+            }
+        }
+    }
+
+    fun fetchHubDetails(hubId: String, token: String?, forceReload: Boolean = false) {
         if (token.isNullOrBlank()) return
-
+        savedHubId = hubId
+        savedToken = token
         _uiState.update { it.copy(isLoading = true, error = null) }
 
         // 1. Busca Membros
@@ -155,7 +163,7 @@ class HubDetailsViewModel(
         memberRepo.deleteMember(
             memberId = memberId,
             token = token,
-            onSuccess = { /* Sucesso */ },
+            onSuccess = { viewModelScope.launch { AppEventBus.emitRefresh() } },
             onError = { msg ->
                 _uiState.update { it.copy(membros = backup, error = "Erro ao remover: $msg") }
             }
@@ -178,7 +186,7 @@ class HubDetailsViewModel(
             newRole = newRole,
             newStatus = newStatus,
             token = token,
-            onSuccess = { /* Sucesso */ },
+            onSuccess = { viewModelScope.launch { AppEventBus.emitRefresh() } },
             onError = { msg -> _uiState.update { it.copy(membros = backup, error = "Erro ao atualizar: $msg") } }
         )
     }
@@ -188,28 +196,28 @@ class HubDetailsViewModel(
         if (token.isEmpty()) return
         val backup = _uiState.value.entryRequests
         _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
-        entryRepo.approveRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(entryRequests = backup, error = msg) } })
+        entryRepo.approveRequest(requestId, token, onSuccess = {viewModelScope.launch { AppEventBus.emitRefresh() }}, onError = { msg -> _uiState.update { it.copy(entryRequests = backup, error = msg) } })
     }
 
     fun recusarEntry(requestId: String, token: String) {
         if (token.isEmpty()) return
         val backup = _uiState.value.entryRequests
         _uiState.update { it.copy(entryRequests = it.entryRequests.filter { r -> r.id != requestId }) }
-        entryRepo.rejectRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(entryRequests = backup, error = msg) } })
+        entryRepo.rejectRequest(requestId, token, onSuccess = {viewModelScope.launch { AppEventBus.emitRefresh() }}, onError = { msg -> _uiState.update { it.copy(entryRequests = backup, error = msg) } })
     }
 
     fun aprovarChange(requestId: String, token: String) {
         if (token.isEmpty()) return
         val backup = _uiState.value.changeRequests
         _uiState.update { it.copy(changeRequests = it.changeRequests.filter { r -> r.id != requestId }) }
-        changeRepo.approveChangeRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(changeRequests = backup, error = msg) } })
+        changeRepo.approveChangeRequest(requestId, token, onSuccess = {viewModelScope.launch { AppEventBus.emitRefresh() }}, onError = { msg -> _uiState.update { it.copy(changeRequests = backup, error = msg) } })
     }
 
     fun recusarChange(requestId: String, token: String) {
         if (token.isEmpty()) return
         val backup = _uiState.value.changeRequests
         _uiState.update { it.copy(changeRequests = it.changeRequests.filter { r -> r.id != requestId }) }
-        changeRepo.rejectChangeRequest(requestId, token, onSuccess = {}, onError = { msg -> _uiState.update { it.copy(changeRequests = backup, error = msg) } })
+        changeRepo.rejectChangeRequest(requestId, token, onSuccess = {viewModelScope.launch { AppEventBus.emitRefresh() }}, onError = { msg -> _uiState.update { it.copy(changeRequests = backup, error = msg) } })
     }
 }
 
