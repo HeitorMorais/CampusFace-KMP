@@ -73,7 +73,7 @@ class ChangeRequestRepository {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val httpResponse = client.submitFormWithBinaryData(
-                    url = "$BASE_URL/change-requests/create",
+                    url = "$BASE_URL/change-requests",
                     formData = formData {
                         append("organizationId", organizationId)
                         append("image", imageBytes, Headers.build {

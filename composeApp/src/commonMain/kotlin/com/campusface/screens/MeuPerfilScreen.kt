@@ -174,7 +174,10 @@ fun MeuPerfilScreen(
     }
 
 
-    val launcher = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+    val launcher = rememberFilePickerLauncher(// Se o backend NÃO suporta WebP, use apenas isso:
+        type = FileKitType.File(
+            extensions = listOf("jpg", "jpeg", "png")
+        ),) { file ->
         if (file != null) {
             selectedImagePreview = file
             scope.launch { newImageBytes = file.readBytes() }
@@ -314,9 +317,6 @@ fun MeuPerfilScreen(
 
 
                     Spacer(Modifier.height(16.dp))
-                    TextButton(onClick = { authRepository.logout() }) {
-                        Text("Sair da conta", color = Color.Red)
-                    }
                 }
             }
         }

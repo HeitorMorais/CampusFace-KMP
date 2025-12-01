@@ -82,7 +82,7 @@ fun BottomBar(
 
             NavigationBarItem(
                 colors = cores,
-                modifier = Modifier.padding(10.dp),
+                modifier = Modifier.padding(7.dp),
                 selected = isSelected,
                 onClick = {
 
@@ -102,7 +102,7 @@ fun BottomBar(
                         contentDescription = item.label
                     )
                 },
-                label = { Text(item.label, color=MaterialTheme.colorScheme.primary, fontSize = 14.sp) },
+                label = { Text(item.label, color=MaterialTheme.colorScheme.primary, fontSize = 12.sp) },
             )
         }
         val isSelectedSair = currentRouteName == DashboardRouteNames.SAIR
@@ -128,7 +128,7 @@ fun BottomBar(
                     contentDescription = "Sair"
                 )
             },
-            label = { Text("Sair", fontSize =14.sp) },
+            label = { Text("Sair", fontSize = 12.sp) },
         )
     }
 }

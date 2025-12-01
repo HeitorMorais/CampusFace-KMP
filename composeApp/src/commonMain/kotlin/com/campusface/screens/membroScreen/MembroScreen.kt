@@ -335,7 +335,8 @@ fun UnifiedCard(
                         }
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
+                            containerColor = Color.White
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Atualizar Foto") },

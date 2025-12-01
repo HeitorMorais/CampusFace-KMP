@@ -67,13 +67,13 @@ class AdministrarViewModel(
         }
     }
 
-    fun fetchAdminHubs(token: String?, currentUserId: String?) {
+    fun fetchAdminHubs(token: String?, currentUserId: String?, forceReload: Boolean = false) {
         if (token.isNullOrBlank() || currentUserId.isNullOrBlank()) return
 
         savedToken = token
         savedUserId = currentUserId
 
-        if (isLoaded) return
+        if (isLoaded && !forceReload) return
 
         _uiState.update { it.copy(isLoading = true, error = null) }
 
@@ -253,7 +253,7 @@ fun HubAdminCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = organization.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = organization.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Text(text = organization.hubCode, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 

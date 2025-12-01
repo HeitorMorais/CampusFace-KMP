@@ -1,5 +1,7 @@
 package com.campusface
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -63,7 +65,7 @@ fun App(
 
                 NavHost(
                     navController = navController,
-                    startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login
+                    startDestination = if (authState.isAuthenticated) AppRoute.DashboardGraph else AppRoute.Login,
                 ) {
                     composable<AppRoute.Register> {
                         RegisterScreen(navController = navController)

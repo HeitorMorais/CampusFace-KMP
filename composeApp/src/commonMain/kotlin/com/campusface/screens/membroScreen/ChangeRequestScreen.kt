@@ -106,7 +106,10 @@ fun ChangeRequestScreen(
 
 
     val launcher = rememberFilePickerLauncher(
-        type = FileKitType.Image,
+        // Se o backend NÃO suporta WebP, use apenas isso:
+        type = FileKitType.File(
+            extensions = listOf("jpg", "jpeg", "png")
+        ),
         title = "Selecione sua nova foto"
     ) { file ->
         if (file != null) {
