@@ -254,14 +254,14 @@ fun HubAdminCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = organization.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(text = organization.description, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 Text(text = organization.hubCode, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Groups, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                val totalPessoas = organization.members.size + organization.admins.size + organization.validators.size
+                val totalPessoas = organization.members.size + organization.validators.size
                 Text(text = "$totalPessoas", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 4.dp))
-
                 Spacer(Modifier.width(8.dp))
 
                 Box {
