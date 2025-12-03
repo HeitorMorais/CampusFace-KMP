@@ -1,6 +1,9 @@
 package com.campusface.data.Repository
 
 import com.campusface.data.BASE_URL
+// Certifique-se de que a classe OrganizationMember está acessível aqui
+// import com.campusface.data.Repository.OrganizationMember
+
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -10,11 +13,12 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay // Usado para a simulação
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-
+// --- MODELS JÁ EXISTENTES ---
 @Serializable
 data class ValidateCodeRequest(
     val code: String
@@ -33,6 +37,7 @@ data class ValidationApiResponse(
     val message: String,
     val data: ValidationResponseData? = null
 )
+
 @Serializable
 data class GenerateCodeRequest(
     val organizationId: String
@@ -51,8 +56,7 @@ data class GenerateCodeResponse(
     val data: GeneratedCodeData? = null
 )
 
-
-
+// --- REPOSITORY ---
 class ValidationRepository {
 
     private val client = HttpClient {
@@ -65,6 +69,7 @@ class ValidationRepository {
         }
     }
 
+    // --- (1) CREATE: GERAR QR CODE ---
     fun generateQrCode(
         organizationId: String,
         token: String,
@@ -73,14 +78,12 @@ class ValidationRepository {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                // POST /validate/qr-code/generate
                 val httpResponse = client.post(BASE_URL + "/validate/qr-code/generate") {
                     headers {
                         append("ngrok-skip-browser-warning", "true")
                         append(HttpHeaders.Authorization, "Bearer $token")
                     }
                     contentType(ContentType.Application.Json)
-                    // Envia o JSON { "organizationId": "..." }
                     setBody(GenerateCodeRequest(organizationId))
                 }
 
@@ -103,6 +106,8 @@ class ValidationRepository {
             }
         }
     }
+
+    // --- (2) READ: VALIDAR QR CODE ---
     fun validateQrCode(
         code: String,
         token: String,
@@ -120,19 +125,101 @@ class ValidationRepository {
                     setBody(ValidateCodeRequest(code))
                 }
 
-
                 val rawResponse = httpResponse.body<ValidationApiResponse>()
 
                 if (rawResponse.success && rawResponse.data != null) {
                     onSuccess(rawResponse.data)
                 } else {
-
                     onError(rawResponse.message)
                 }
 
             } catch (e: Exception) {
-
                 onError("Erro de validação: ${e.message}")
+            }
+        }
+    }
+
+    // --- (3) UPDATE: ESTENDER VALIDADE (SIMULAÇÃO) ---
+    /**
+     * Simula uma atualização no recurso QR Code.
+     * Como o backend não possui PUT /validate/qr-code/{code},
+     * simulamos uma chamada de rede e retornamos o mesmo código com data futura.
+     */
+    fun extendQrCodeValidity(
+        currentCode: String,
+        token: String,
+        onSuccess: (GeneratedCodeData) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                println("SIMULAÇÃO: Enviando PUT para atualizar QR Code $currentCode...")
+
+                // 1. Simula delay de rede (1.5 segundos)
+                delay(1500)
+
+                // 2. Simula uma resposta de sucesso do servidor
+                // Vamos fingir que o servidor estendeu a validade por 1 hora
+
+                // NOTA: Se fosse real, seria assim:
+                /*
+                val response = client.put(BASE_URL + "/validate/qr-code/$currentCode") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                */
+
+                // 3. Retorna o objeto atualizado
+                // Aqui geramos uma data fake no futuro para a simulação
+                // (Para funcionar perfeitamente, o app teria que ignorar a validação real do backend neste momento)
+                val simulatedNewExpiration = "2099-12-31T23:59:59.999Z"
+
+                val updatedData = GeneratedCodeData(
+                    code = currentCode, // Mantém o mesmo número
+                    expirationTime = simulatedNewExpiration
+                )
+
+                println("SIMULAÇÃO: Sucesso! Validade estendida.")
+                onSuccess(updatedData)
+
+            } catch (e: Exception) {
+                onError("Erro na simulação: ${e.message}")
+            }
+        }
+    }
+
+    // --- (4) DELETE: INVALIDAR/CANCELAR QR CODE ---
+    fun invalidateQrCode(
+        code: String,
+        token: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.post(BASE_URL + "/validate/qr-code/invalidate") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                    setBody(ValidateCodeRequest(code))
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    onError("Erro ${httpResponse.status.value}")
+                    return@launch
+                }
+
+                val response = httpResponse.body<ValidationApiResponse>()
+
+                if (response.success) {
+                    onSuccess()
+                } else {
+                    onError(response.message)
+                }
+
+            } catch (e: Exception) {
+                onError("Erro ao invalidar: ${e.message}")
             }
         }
     }

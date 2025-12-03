@@ -6,7 +6,6 @@ import com.campusface.data.Model.OrganizationCreateRequest
 import com.campusface.data.Model.OrganizationResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -18,13 +17,12 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-
-
 @Serializable
 data class OrganizationUpdateBody(
     val name: String,
     val description: String
 )
+
 @Serializable
 data class OrganizationListResponse(
     val success: Boolean,
@@ -44,7 +42,7 @@ class OrganizationRepository {
         }
     }
 
-
+    // --- JÁ EXISTENTE: CREATE ---
     fun createOrganization(
         name: String,
         description: String,
@@ -94,13 +92,12 @@ class OrganizationRepository {
         }
     }
 
-
+    // --- JÁ EXISTENTE: READ (Meus Hubs) ---
     fun getMyHubs(
         token: String?,
         onSuccess: (List<Organization>) -> Unit,
         onError: (String) -> Unit
     ) {
-
         if (token.isNullOrBlank()) {
             onError("Token inválido ou não encontrado.")
             return
@@ -110,7 +107,6 @@ class OrganizationRepository {
             try {
                 println("Buscando meus hubs...")
 
-
                 val httpResponse = client.get(BASE_URL + "/organizations/my-hubs") {
                     headers {
                         append("ngrok-skip-browser-warning", "true")
@@ -119,14 +115,12 @@ class OrganizationRepository {
                     contentType(ContentType.Application.Json)
                 }
 
-
                 if (httpResponse.status.value >= 400) {
                     val errorBody = httpResponse.bodyAsText()
                     onError("Erro ${httpResponse.status.value}: $errorBody")
                     return@launch
                 }
 
-                // Parse usando a nova classe de lista
                 val response = httpResponse.body<OrganizationListResponse>()
 
                 if (response.success) {
@@ -143,6 +137,7 @@ class OrganizationRepository {
         }
     }
 
+    // --- JÁ EXISTENTE: UPDATE ---
     fun updateOrganization(
         id: String,
         name: String,
@@ -179,6 +174,7 @@ class OrganizationRepository {
         }
     }
 
+    // --- JÁ EXISTENTE: DELETE ---
     fun deleteOrganization(
         id: String,
         token: String,
@@ -199,7 +195,6 @@ class OrganizationRepository {
                     return@launch
                 }
 
-
                 onSuccess()
             } catch (e: Exception) {
                 onError("Erro: ${e.message}")
@@ -207,4 +202,108 @@ class OrganizationRepository {
         }
     }
 
+    // ==========================================
+    // NOVAS FUNÇÕES ADICIONADAS
+    // ==========================================
+
+    // --- READ (Single) - Buscar por ID ---
+    fun getOrganizationById(
+        id: String,
+        token: String,
+        onSuccess: (Organization) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.get(BASE_URL + "/organizations/$id") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    onError("Erro ${httpResponse.status.value}")
+                    return@launch
+                }
+
+                val response = httpResponse.body<OrganizationResponse>()
+                if (response.success && response.data != null) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+            } catch (e: Exception) {
+                onError("Erro: ${e.message}")
+            }
+        }
+    }
+
+    // --- READ (By HubCode) - Buscar pelo código ---
+    fun getOrganizationByHubCode(
+        hubCode: String,
+        token: String,
+        onSuccess: (Organization) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.get(BASE_URL + "/organizations/hub/$hubCode") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    onError("Erro ${httpResponse.status.value}")
+                    return@launch
+                }
+
+                val response = httpResponse.body<OrganizationResponse>()
+                if (response.success && response.data != null) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+            } catch (e: Exception) {
+                onError("Erro: ${e.message}")
+            }
+        }
+    }
+
+    // --- READ (All) - Listar Todas ---
+    fun getAllOrganizations(
+        token: String,
+        onSuccess: (List<Organization>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.get(BASE_URL + "/organizations") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    onError("Erro ${httpResponse.status.value}")
+                    return@launch
+                }
+
+                val response = httpResponse.body<OrganizationListResponse>()
+                if (response.success) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+            } catch (e: Exception) {
+                onError("Erro: ${e.message}")
+            }
+        }
+    }
 }

@@ -16,6 +16,9 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+// ==========================================
+// 1. MODELS
+// ==========================================
 
 @Serializable
 data class EntryRequest(
@@ -53,7 +56,9 @@ data class ActionResponse(
     val success: Boolean
 )
 
-
+// ==========================================
+// 2. REPOSITORY
+// ==========================================
 
 class EntryRequestRepository {
 
@@ -67,7 +72,7 @@ class EntryRequestRepository {
         }
     }
 
-
+    // --- CRIAR SOLICITAÇÃO ---
     fun entryRequestCreate(
         hubCode: String,
         role: String?,
@@ -113,7 +118,7 @@ class EntryRequestRepository {
         }
     }
 
-
+    // --- LISTAR MINHAS SOLICITAÇÕES ---
     fun listMyRequests(
         token: String?,
         onSuccess: (List<EntryRequest>) -> Unit,
@@ -151,7 +156,7 @@ class EntryRequestRepository {
         }
     }
 
-
+    // --- LISTAR PENDENTES DO HUB (ADMIN) ---
     fun listPendingRequestsByHub(
         hubCode: String,
         token: String,
@@ -186,7 +191,7 @@ class EntryRequestRepository {
         }
     }
 
-
+    // --- APROVAR ---
     fun approveRequest(
         requestId: String,
         token: String,
@@ -196,7 +201,7 @@ class EntryRequestRepository {
         performAction(requestId, "approve", token, onSuccess, onError)
     }
 
-
+    // --- REJEITAR ---
     fun rejectRequest(
         requestId: String,
         token: String,
@@ -206,7 +211,89 @@ class EntryRequestRepository {
         performAction(requestId, "reject", token, onSuccess, onError)
     }
 
+    // ==========================================
+    // NOVAS FUNÇÕES ADICIONADAS
+    // ==========================================
 
+    // --- BUSCAR POR ID (READ SINGLE) ---
+    fun getEntryRequestById(
+        requestId: String,
+        token: String,
+        onSuccess: (EntryRequest) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.get(BASE_URL + "/entry-requests/$requestId") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    val raw = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $raw")
+                    return@launch
+                }
+
+                val response = httpResponse.body<EntryRequestResponse>()
+
+                if (response.success && response.data != null) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+
+            } catch (e: Exception) {
+                onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
+    // --- DELETAR SOLICITAÇÃO (CANCELAR) ---
+    fun deleteEntryRequest(
+        requestId: String,
+        token: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.delete(BASE_URL + "/entry-requests/$requestId") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    val raw = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $raw")
+                    return@launch
+                }
+
+                // Assume-se que o backend retorna um ActionResponse ou similar no delete
+                val response = httpResponse.body<ActionResponse>()
+
+                if (response.success) {
+                    onSuccess()
+                } else {
+                    onError(response.message)
+                }
+
+            } catch (e: Exception) {
+                onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
+    // ==========================================
+    // AUXILIARES
+    // ==========================================
+
+    // --- AUXILIAR PRIVADO ---
     private fun performAction(
         requestId: String,
         action: String,

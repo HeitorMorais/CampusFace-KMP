@@ -107,6 +107,47 @@ class OrganizationMemberRepository {
         }
     }
 
+    // --- ADICIONADO: BUSCAR MEMBRO POR ID (READ SINGLE) ---
+    /**
+     * BUSCAR UM MEMBRO ESPECÍFICO
+     * GET /members/{id}
+     */
+    fun getMemberById(
+        memberId: String,
+        token: String,
+        onSuccess: (OrganizationMember) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val httpResponse = client.get(BASE_URL + "/members/$memberId") {
+                    headers {
+                        append("ngrok-skip-browser-warning", "true")
+                        append(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    contentType(ContentType.Application.Json)
+                }
+
+                if (httpResponse.status.value >= 400) {
+                    val errorBody = httpResponse.bodyAsText()
+                    onError("Erro ${httpResponse.status.value}: $errorBody")
+                    return@launch
+                }
+
+                val response = httpResponse.body<MemberResponse>()
+
+                if (response.success && response.data != null) {
+                    onSuccess(response.data)
+                } else {
+                    onError(response.message)
+                }
+
+            } catch (e: Exception) {
+                onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
     /**
      * ATUALIZAR MEMBRO (Role ou Status)
      * PUT /members/{id}
