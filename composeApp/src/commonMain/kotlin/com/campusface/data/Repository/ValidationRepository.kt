@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// --- MODELS JÁ EXISTENTES ---
 @Serializable
 data class ValidateCodeRequest(
     val code: String
@@ -55,8 +54,6 @@ data class GenerateCodeResponse(
     val message: String,
     val data: GeneratedCodeData? = null
 )
-
-// --- REPOSITORY ---
 class ValidationRepository {
 
     private val client = HttpClient {
@@ -68,8 +65,6 @@ class ValidationRepository {
             })
         }
     }
-
-    // --- (1) CREATE: GERAR QR CODE ---
     fun generateQrCode(
         organizationId: String,
         token: String,
@@ -106,8 +101,6 @@ class ValidationRepository {
             }
         }
     }
-
-    // --- (2) READ: VALIDAR QR CODE ---
     fun validateQrCode(
         code: String,
         token: String,
@@ -139,12 +132,6 @@ class ValidationRepository {
         }
     }
 
-    // --- (3) UPDATE: ESTENDER VALIDADE (SIMULAÇÃO) ---
-    /**
-     * Simula uma atualização no recurso QR Code.
-     * Como o backend não possui PUT /validate/qr-code/{code},
-     * simulamos uma chamada de rede e retornamos o mesmo código com data futura.
-     */
     fun extendQrCodeValidity(
         currentCode: String,
         token: String,
@@ -155,26 +142,14 @@ class ValidationRepository {
             try {
                 println("SIMULAÇÃO: Enviando PUT para atualizar QR Code $currentCode...")
 
-                // 1. Simula delay de rede (1.5 segundos)
+
                 delay(1500)
 
-                // 2. Simula uma resposta de sucesso do servidor
-                // Vamos fingir que o servidor estendeu a validade por 1 hora
 
-                // NOTA: Se fosse real, seria assim:
-                /*
-                val response = client.put(BASE_URL + "/validate/qr-code/$currentCode") {
-                    header(HttpHeaders.Authorization, "Bearer $token")
-                }
-                */
-
-                // 3. Retorna o objeto atualizado
-                // Aqui geramos uma data fake no futuro para a simulação
-                // (Para funcionar perfeitamente, o app teria que ignorar a validação real do backend neste momento)
                 val simulatedNewExpiration = "2099-12-31T23:59:59.999Z"
 
                 val updatedData = GeneratedCodeData(
-                    code = currentCode, // Mantém o mesmo número
+                    code = currentCode,
                     expirationTime = simulatedNewExpiration
                 )
 
@@ -187,7 +162,6 @@ class ValidationRepository {
         }
     }
 
-    // --- (4) DELETE: INVALIDAR/CANCELAR QR CODE ---
     fun invalidateQrCode(
         code: String,
         token: String,

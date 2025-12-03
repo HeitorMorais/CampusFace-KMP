@@ -1,6 +1,7 @@
 package com.campusface.data.Repository
 
 import com.campusface.data.BASE_URL
+import com.campusface.data.HttpClientProvider.client
 import com.campusface.data.Model.User
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -15,10 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-
-// ==========================================
-// 1. MODELS
-// ==========================================
 
 @Serializable
 data class EntryRequest(
@@ -56,10 +53,6 @@ data class ActionResponse(
     val success: Boolean
 )
 
-// ==========================================
-// 2. REPOSITORY
-// ==========================================
-
 class EntryRequestRepository {
 
     private val client = HttpClient {
@@ -71,8 +64,6 @@ class EntryRequestRepository {
             })
         }
     }
-
-    // --- CRIAR SOLICITAÇÃO ---
     fun entryRequestCreate(
         hubCode: String,
         role: String?,
@@ -118,7 +109,6 @@ class EntryRequestRepository {
         }
     }
 
-    // --- LISTAR MINHAS SOLICITAÇÕES ---
     fun listMyRequests(
         token: String?,
         onSuccess: (List<EntryRequest>) -> Unit,
@@ -155,8 +145,6 @@ class EntryRequestRepository {
             }
         }
     }
-
-    // --- LISTAR PENDENTES DO HUB (ADMIN) ---
     fun listPendingRequestsByHub(
         hubCode: String,
         token: String,
@@ -252,7 +240,6 @@ class EntryRequestRepository {
         }
     }
 
-    // --- DELETAR SOLICITAÇÃO (CANCELAR) ---
     fun deleteEntryRequest(
         requestId: String,
         token: String,
@@ -273,8 +260,6 @@ class EntryRequestRepository {
                     onError("Erro ${httpResponse.status.value}: $raw")
                     return@launch
                 }
-
-                // Assume-se que o backend retorna um ActionResponse ou similar no delete
                 val response = httpResponse.body<ActionResponse>()
 
                 if (response.success) {
@@ -289,11 +274,6 @@ class EntryRequestRepository {
         }
     }
 
-    // ==========================================
-    // AUXILIARES
-    // ==========================================
-
-    // --- AUXILIAR PRIVADO ---
     private fun performAction(
         requestId: String,
         action: String,
@@ -324,6 +304,45 @@ class EntryRequestRepository {
             } catch (e: Exception) {
                 onError("Erro: ${e.message}")
             }
+        }
+    }
+}
+
+fun updateEntryRequest(
+    requestId: String,
+    newRole: String,
+    token: String,
+    onSuccess: (EntryRequest) -> Unit,
+    onError: (String) -> Unit
+) {
+    CoroutineScope(Dispatchers.Main).launch {
+        try {
+            val httpResponse = client.put(BASE_URL + "/entry-requests/$requestId") {
+                headers {
+                    append("ngrok-skip-browser-warning", "true")
+                    append(HttpHeaders.Authorization, "Bearer $token")
+                }
+                contentType(ContentType.Application.Json)
+
+                setBody(mapOf("role" to newRole.uppercase()))
+            }
+
+            if (httpResponse.status.value >= 400) {
+                val raw = httpResponse.bodyAsText()
+                onError("Erro ${httpResponse.status.value}: $raw")
+                return@launch
+            }
+
+            val response = httpResponse.body<EntryRequestResponse>()
+
+            if (response.success && response.data != null) {
+                onSuccess(response.data)
+            } else {
+                onError(response.message)
+            }
+
+        } catch (e: Exception) {
+            onError("Erro de conexão: ${e.message}")
         }
     }
 }

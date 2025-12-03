@@ -42,7 +42,6 @@ class OrganizationRepository {
         }
     }
 
-    // --- JÁ EXISTENTE: CREATE ---
     fun createOrganization(
         name: String,
         description: String,
@@ -92,7 +91,6 @@ class OrganizationRepository {
         }
     }
 
-    // --- JÁ EXISTENTE: READ (Meus Hubs) ---
     fun getMyHubs(
         token: String?,
         onSuccess: (List<Organization>) -> Unit,
@@ -137,7 +135,6 @@ class OrganizationRepository {
         }
     }
 
-    // --- JÁ EXISTENTE: UPDATE ---
     fun updateOrganization(
         id: String,
         name: String,
@@ -173,8 +170,6 @@ class OrganizationRepository {
             }
         }
     }
-
-    // --- JÁ EXISTENTE: DELETE ---
     fun deleteOrganization(
         id: String,
         token: String,
@@ -201,12 +196,6 @@ class OrganizationRepository {
             }
         }
     }
-
-    // ==========================================
-    // NOVAS FUNÇÕES ADICIONADAS
-    // ==========================================
-
-    // --- READ (Single) - Buscar por ID ---
     fun getOrganizationById(
         id: String,
         token: String,
@@ -240,7 +229,6 @@ class OrganizationRepository {
         }
     }
 
-    // --- READ (By HubCode) - Buscar pelo código ---
     fun getOrganizationByHubCode(
         hubCode: String,
         token: String,
@@ -274,7 +262,6 @@ class OrganizationRepository {
         }
     }
 
-    // --- READ (All) - Listar Todas ---
     fun getAllOrganizations(
         token: String,
         onSuccess: (List<Organization>) -> Unit,

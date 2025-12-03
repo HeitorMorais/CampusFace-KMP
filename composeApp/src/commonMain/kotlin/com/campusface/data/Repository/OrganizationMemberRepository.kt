@@ -16,15 +16,12 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// ==========================================
-// 1. MODELS
-// ==========================================
 
 @Serializable
 data class OrganizationMember(
     val id: String,
-    val role: String,   // "MEMBER", "ADMIN", "VALIDATOR"
-    val status: String, // "PENDING", "ACTIVE", "INACTIVE"
+    val role: String,
+    val status: String,
     val joinedAt: String? = null,
     val user: User
 )
@@ -43,20 +40,16 @@ data class MemberResponse(
     val data: OrganizationMember? = null
 )
 
-// DTO para enviar na atualização
+
 @Serializable
 data class MemberUpdateRequest(
     val role: String? = null,
     val status: String? = null
 )
 
-// ==========================================
-// 2. REPOSITORY
-// ==========================================
 
 class OrganizationMemberRepository {
 
-    // Cliente Genérico
     private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -67,10 +60,6 @@ class OrganizationMemberRepository {
         }
     }
 
-    /**
-     * LISTAR MEMBROS
-     * GET /members/organization/{id}
-     */
     fun listMembers(
         organizationId: String,
         token: String,
@@ -107,11 +96,6 @@ class OrganizationMemberRepository {
         }
     }
 
-    // --- ADICIONADO: BUSCAR MEMBRO POR ID (READ SINGLE) ---
-    /**
-     * BUSCAR UM MEMBRO ESPECÍFICO
-     * GET /members/{id}
-     */
     fun getMemberById(
         memberId: String,
         token: String,
@@ -148,10 +132,6 @@ class OrganizationMemberRepository {
         }
     }
 
-    /**
-     * ATUALIZAR MEMBRO (Role ou Status)
-     * PUT /members/{id}
-     */
     fun updateMember(
         memberId: String,
         newRole: String? = null,
@@ -196,10 +176,6 @@ class OrganizationMemberRepository {
         }
     }
 
-    /**
-     * REMOVER MEMBRO
-     * DELETE /members/{id}
-     */
     fun deleteMember(
         memberId: String,
         token: String,
@@ -221,7 +197,6 @@ class OrganizationMemberRepository {
                     return@launch
                 }
 
-                // Delete geralmente retorna 200 OK
                 onSuccess()
 
             } catch (e: Exception) {

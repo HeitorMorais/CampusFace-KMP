@@ -34,7 +34,6 @@ class UserRepository {
         }
     }
 
-    // get
     suspend fun getUser(id: String, token: String): Result<User> = runCatching {
         val httpResponse = client.get("${BASE_URL}/users/$id") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -48,7 +47,6 @@ class UserRepository {
         else throw Exception(apiResponse.message)
     }
 
-    //ATUALIZAR FOTO
     suspend fun updateProfileImage(
         imageBytes: ByteArray,
         token: String
@@ -95,7 +93,6 @@ class UserRepository {
         if (apiResponse.success && apiResponse.data != null) apiResponse.data
         else throw Exception(apiResponse.message)
     }
-    // --- DELETAR CONTA (DELETE) ---
     suspend fun deleteUser(id: String, token: String): Result<Unit> = runCatching {
         val httpResponse = client.delete("${BASE_URL}/users/$id") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -106,6 +103,5 @@ class UserRepository {
             throw Exception("Erro ao deletar: ${httpResponse.status.value}")
         }
 
-        // Retorna sucesso (Unit)
     }
 }

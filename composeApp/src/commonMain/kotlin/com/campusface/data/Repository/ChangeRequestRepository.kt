@@ -1,6 +1,7 @@
 package com.campusface.data.Repository
 
 import com.campusface.data.BASE_URL
+import com.campusface.data.HttpClientProvider.client
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -101,8 +102,6 @@ class ChangeRequestRepository {
             }
         }
     }
-
-    // --- EXISTENTE: LISTAR POR ORGANIZAÇÃO ---
     fun listPendingChangeRequests(
         organizationId: String,
         token: String,
@@ -133,7 +132,6 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- EXISTENTE: APROVAR ---
     fun approveChangeRequest(
         requestId: String,
         token: String,
@@ -143,7 +141,6 @@ class ChangeRequestRepository {
         sendReview(requestId, true, token, onSuccess, onError)
     }
 
-    // --- EXISTENTE: REJEITAR ---
     fun rejectChangeRequest(
         requestId: String,
         token: String,
@@ -153,7 +150,7 @@ class ChangeRequestRepository {
         sendReview(requestId, false, token, onSuccess, onError)
     }
 
-    // --- NOVO: BUSCAR POR ID (READ SINGLE) ---
+
     fun getChangeRequestById(
         requestId: String,
         token: String,
@@ -185,7 +182,6 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- NOVO: DELETAR/CANCELAR SOLICITAÇÃO (DELETE) ---
     fun deleteChangeRequest(
         requestId: String,
         token: String,
@@ -207,8 +203,6 @@ class ChangeRequestRepository {
                     return@launch
                 }
 
-                // Geralmente DELETE retorna sucesso sem dados, ou o mesmo padrão de response
-                // Se o backend retornar JSON padrão:
                 val response = httpResponse.body<ChangeRequestResponse>()
                 if (response.success) onSuccess() else onError(response.message)
 
@@ -218,7 +212,6 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- NOVO: LISTAR MINHAS SOLICITAÇÕES (READ USER) ---
     fun listMyChangeRequests(
         token: String,
         onSuccess: (List<ChangeRequestDto>) -> Unit,
@@ -248,7 +241,6 @@ class ChangeRequestRepository {
         }
     }
 
-    // --- AUXILIAR EXISTENTE ---
     private fun sendReview(
         requestId: String,
         isApproved: Boolean,
@@ -283,6 +275,45 @@ class ChangeRequestRepository {
             } catch (e: Exception) {
                 onError(e.message ?: "Erro desconhecido")
             }
+        }
+    }
+}
+
+fun updateChangeRequest(
+    requestId: String,
+    imageBytes: ByteArray,
+    token: String,
+    onSuccess: (ChangeRequestDto) -> Unit,
+    onError: (String) -> Unit
+) {
+    CoroutineScope(Dispatchers.Main).launch {
+        try {
+            val httpResponse = client.submitFormWithBinaryData(
+                url = "$BASE_URL/change-requests/$requestId",
+                formData = formData {
+                    append("image", imageBytes, Headers.build {
+                        append(HttpHeaders.ContentType, "image/jpeg")
+                        append(HttpHeaders.ContentDisposition, "filename=\"updated_face.jpg\"")
+                    })
+                }
+            ) {
+                method = HttpMethod.Put
+                header("Authorization", "Bearer $token")
+                header("ngrok-skip-browser-warning", "true")
+            }
+
+            if (httpResponse.status.value >= 400) {
+                val errorBody = httpResponse.bodyAsText()
+                onError("Erro ${httpResponse.status.value}: $errorBody")
+                return@launch
+            }
+
+            val response = httpResponse.body<ChangeRequestResponse>()
+            if (response.success && response.data != null) onSuccess(response.data)
+            else onError(response.message)
+
+        } catch (e: Exception) {
+            onError("Erro de conexão: ${e.message}")
         }
     }
 }
