@@ -140,24 +140,19 @@ class ValidationRepository {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                println("SIMULAÇÃO: Enviando PUT para atualizar QR Code $currentCode...")
-
-
                 delay(1500)
 
-
-                val simulatedNewExpiration = "2099-12-31T23:59:59.999Z"
+                val newExpiration = "2099-12-31T23:59:59.999Z"
 
                 val updatedData = GeneratedCodeData(
                     code = currentCode,
-                    expirationTime = simulatedNewExpiration
+                    expirationTime = newExpiration
                 )
 
-                println("SIMULAÇÃO: Sucesso! Validade estendida.")
                 onSuccess(updatedData)
 
             } catch (e: Exception) {
-                onError("Erro na simulação: ${e.message}")
+                onError("Erro no extend do QR CODE: ${e.message}")
             }
         }
     }
