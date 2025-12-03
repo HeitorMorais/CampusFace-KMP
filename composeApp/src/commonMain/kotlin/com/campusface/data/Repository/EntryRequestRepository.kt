@@ -179,7 +179,6 @@ class EntryRequestRepository {
         }
     }
 
-    // --- APROVAR ---
     fun approveRequest(
         requestId: String,
         token: String,
@@ -189,7 +188,6 @@ class EntryRequestRepository {
         performAction(requestId, "approve", token, onSuccess, onError)
     }
 
-    // --- REJEITAR ---
     fun rejectRequest(
         requestId: String,
         token: String,
@@ -199,11 +197,6 @@ class EntryRequestRepository {
         performAction(requestId, "reject", token, onSuccess, onError)
     }
 
-    // ==========================================
-    // NOVAS FUNÇÕES ADICIONADAS
-    // ==========================================
-
-    // --- BUSCAR POR ID (READ SINGLE) ---
     fun getEntryRequestById(
         requestId: String,
         token: String,

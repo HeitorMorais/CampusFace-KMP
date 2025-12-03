@@ -59,8 +59,6 @@ class ChangeRequestRepository {
             })
         }
     }
-
-    // --- EXISTENTE: CRIAR ---
     fun createChangeRequest(
         organizationId: String,
         imageBytes: ByteArray,
@@ -70,9 +68,6 @@ class ChangeRequestRepository {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                // Ajustei a URL para bater com o padrão REST geralmente usado
-                // Se seu backend usa /change-requests/create, mantenha /create.
-                // Se usa POST /change-requests, use apenas o base.
                 val httpResponse = client.submitFormWithBinaryData(
                     url = "$BASE_URL/change-requests",
                     formData = formData {
